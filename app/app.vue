@@ -93,6 +93,7 @@ const handleSearch = async (query: SearchQuery) => {
         from: query.from,
         to: query.to,
         date: query.date,
+        returnDate: query.returnDate,
       }
     });
     
