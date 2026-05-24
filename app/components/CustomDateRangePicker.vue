@@ -32,7 +32,7 @@
     <transition name="fade">
       <div 
         v-if="isOpen"
-        class="absolute z-50 left-0 mt-2 w-80 bg-white/75 dark:bg-slate-900/40 backdrop-blur-2xl border border-white/50 dark:border-white/10 shadow-xl shadow-blue-500/5 dark:shadow-black/40 rounded-3xl p-5"
+        class="absolute z-50 left-0 mt-2 w-80 bg-white/90 dark:bg-slate-900/85 backdrop-blur-2xl border border-white/50 dark:border-white/10 shadow-xl shadow-blue-500/5 dark:shadow-black/40 rounded-3xl p-5"
         style="top: 100%;"
       >
         <!-- Header controls -->
@@ -95,8 +95,8 @@
               isExtreme(day) 
                 ? 'bg-gradient-to-br from-blue-500 to-indigo-600 text-white font-bold shadow-lg shadow-blue-500/25 border border-white/20' 
                 : isBetween(day)
-                  ? 'bg-blue-500/15 dark:bg-blue-500/25 text-blue-600 dark:text-blue-300 border border-blue-500/10 rounded-xl'
-                  : 'bg-white/40 dark:bg-slate-800/20 text-slate-800 dark:text-slate-100 hover:bg-white dark:hover:bg-slate-800/80 border border-white/10',
+                  ? 'bg-blue-500/30 dark:bg-blue-500/50 text-blue-700 dark:text-blue-200 border border-blue-500/20 rounded-xl'
+                  : 'bg-white/40 dark:bg-slate-800/20 text-slate-800 dark:text-slate-100 hover:bg-blue-50 dark:hover:bg-slate-700 border border-white/10',
               isDateDisabled(day) ? 'opacity-30 cursor-not-allowed pointer-events-none' : ''
             ]"
           >

@@ -71,7 +71,7 @@
                 v-for="suggestion in fromSuggestions" 
                 :key="suggestion.id"
                 @click="selectFromSuggestion(suggestion)"
-                class="px-4 py-3 hover:bg-blue-50/50 dark:hover:bg-slate-800/80 cursor-pointer transition-colors duration-150 flex items-start gap-3"
+                class="px-4 py-3 hover:bg-blue-50 dark:hover:bg-slate-800 cursor-pointer transition-colors duration-150 flex items-start gap-3"
               >
                 <Plane v-if="suggestion.type === 'airport'" class="w-5 h-5 text-blue-500 shrink-0 mt-0.5" />
                 <Building v-else class="w-5 h-5 text-gray-500 dark:text-slate-400 shrink-0 mt-0.5" />
@@ -135,7 +135,7 @@
                 v-for="suggestion in toSuggestions" 
                 :key="suggestion.id"
                 @click="selectToSuggestion(suggestion)"
-                class="px-4 py-3 hover:bg-blue-50/50 dark:hover:bg-slate-800/80 cursor-pointer transition-colors duration-150 flex items-start gap-3"
+                class="px-4 py-3 hover:bg-blue-50 dark:hover:bg-slate-800 cursor-pointer transition-colors duration-150 flex items-start gap-3"
               >
                 <Plane v-if="suggestion.type === 'airport'" class="w-5 h-5 text-blue-500 shrink-0 mt-0.5" />
                 <Building v-else class="w-5 h-5 text-gray-500 dark:text-slate-400 shrink-0 mt-0.5" />
