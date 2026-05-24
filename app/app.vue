@@ -28,11 +28,11 @@
 
     <main class="flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full relative z-10">
       <!-- Search Form Section -->
-      <div class="bg-white/40 dark:bg-slate-900/40 backdrop-blur-xl p-6 rounded-3xl shadow-sm border border-white/40 dark:border-white/10 mb-8 transform hover:shadow-md transition-all">
+      <div class="bg-white/40 dark:bg-slate-900/40 backdrop-blur-xl p-6 rounded-3xl shadow-sm border border-white/40 dark:border-white/10 mb-8 transform hover:shadow-md transition-all relative z-20">
         <FlightSearchForm @search="handleSearch" />
       </div>
 
-      <div class="flex flex-col lg:flex-row gap-8">
+      <div class="flex flex-col lg:flex-row gap-8 relative z-10">
         <!-- Sidebar Filters -->
         <aside class="w-full lg:w-1/4">
           <FilterSidebar 
