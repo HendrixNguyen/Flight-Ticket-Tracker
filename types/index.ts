@@ -2,6 +2,7 @@ export interface Flight {
   id: string;
   airline: string;
   airlineLogo?: string;
+  airplane?: string;
   flightNumber: string;
   departureTime: string; // ISO string
   arrivalTime: string; // ISO string
@@ -41,5 +42,52 @@ export interface LocationSuggestion {
   type: 'city' | 'airport' | 'region';
   description?: string;
   iata?: string;
+}
+
+export interface Hotel {
+  id: string;
+  name: string;
+  description?: string;
+  location: string;
+  gps?: { latitude: number; longitude: number };
+  rating?: number;
+  reviewsCount?: number;
+  pricePerNight: number;
+  totalPrice?: number;
+  currency: string;
+  thumbnail?: string;
+  images?: string[];
+  amenities?: string[];
+  classRating?: number;
+}
+
+export interface HotelSearchQuery {
+  destination: string;
+  destinationName: string;
+  checkIn: string;
+  checkOut: string;
+  adults: number;
+  rooms: number;
+}
+
+export interface HotelFilterOptions {
+  maxPrice?: number;
+  minRating?: number;
+  amenities?: string[];
+}
+
+export interface HotelApiResponse {
+  success: boolean;
+  data: Hotel[];
+  error?: string;
+}
+
+export interface HotelAutocompleteSuggestion {
+  id: string;
+  name: string;
+  type: 'hotel' | 'city' | 'region';
+  description?: string;
+  thumbnail?: string;
+  propertyToken?: string;
 }
 

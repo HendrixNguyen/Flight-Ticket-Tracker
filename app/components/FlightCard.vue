@@ -3,12 +3,20 @@
     
     <!-- Airline Info -->
     <div class="flex sm:flex-col items-center sm:items-start gap-4 sm:w-1/4">
-      <div class="w-12 h-12 rounded-full bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 flex items-center justify-center font-bold text-xl border border-blue-100/50 dark:border-blue-900/30">
+      <div v-if="flight.airlineLogo" class="w-12 h-12 rounded-2xl overflow-hidden bg-white dark:bg-white flex items-center justify-center border border-slate-100 dark:border-slate-800 shadow-sm p-1.5">
+        <img :src="flight.airlineLogo" :alt="flight.airline" class="w-full h-full object-contain" />
+      </div>
+      <div v-else class="w-12 h-12 rounded-full bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 flex items-center justify-center font-bold text-xl border border-blue-100/50 dark:border-blue-900/30">
         {{ flight.airline.charAt(0) }}
       </div>
-      <div>
-        <p class="font-bold text-slate-900 dark:text-slate-100">{{ flight.airline }}</p>
-        <p class="text-xs text-slate-500 dark:text-slate-400">Flight {{ flight.flightNumber }}</p>
+      <div class="min-w-0">
+        <p class="font-bold text-slate-900 dark:text-slate-100 leading-snug truncate w-full">{{ flight.airline }}</p>
+        <div class="flex items-center gap-1.5 mt-1 flex-wrap">
+          <span class="text-xs font-semibold text-slate-500 dark:text-slate-400">FL{{ flight.flightNumber }}</span>
+          <span v-if="flight.airplane" class="text-[10px] font-extrabold uppercase tracking-wide text-slate-400 dark:text-slate-500 border border-slate-200/50 dark:border-slate-850 px-1.5 py-0.5 rounded-md truncate max-w-[140px]" :title="flight.airplane">
+            {{ flight.airplane.split('(')[0].trim() }}
+          </span>
+        </div>
       </div>
     </div>
 

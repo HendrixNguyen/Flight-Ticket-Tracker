@@ -73,6 +73,8 @@ export default defineEventHandler(async (event) => {
        return {
          id: item.flights.map((f:any) => f.flight_number).join('-'),
          airline: firstLeg.airline,
+         airlineLogo: firstLeg.airline_logo || item.airline_logo || undefined,
+         airplane: firstLeg.airplane || 'Boeing 787-9 Dreamliner',
          flightNumber: firstLeg.flight_number,
          departureTime: firstLeg.departure_airport.time,
          arrivalTime: lastLeg.arrival_airport.time,
