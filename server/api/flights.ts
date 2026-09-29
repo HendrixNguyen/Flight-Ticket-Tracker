@@ -20,7 +20,7 @@ export default defineEventHandler(async (event) => {
     return {
       success: false,
       data: [],
-      error: 'SerpApi Key is missing. Please configure it in your .env file as SERPAPI_KEY.',
+      error: 'SerpApi Key is missing. Please set NUXT_SERP_API_KEY in your environment.',
     } as FlightApiResponse;
   }
 
