@@ -1,0 +1,38 @@
+# Dependencies
+node_modules
+.bun
+
+# Nuxt build outputs
+.nuxt
+.output
+.nitro
+.data
+.cache
+dist
+
+# Env files - never bake secrets into the image
+.env
+.env.*
+!.env.example
+
+# Git
+.git
+.gitignore
+
+# VCS / editor
+.DS_Store
+.idea
+.vscode
+
+# Project docs and scratch files (not needed to build)
+docs
+scratch
+README.md
+
+# Kilo
+.kilo
+AGENTS.md
+
+# Logs
+logs
+*.log
