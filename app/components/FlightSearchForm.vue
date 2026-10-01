@@ -1,14 +1,16 @@
 <template>
   <div class="flex flex-col gap-4 w-full">
-    <!-- Trip Type Toggle Slider -->
+    <!-- Trip Type Toggle Slider. The track is a `.glass` pill; the active
+         segment is separated by colour, weight AND an inset ring rather than
+         by fill alpha alone, so it still reads on a translucent track. -->
     <div class="flex justify-start">
-      <div class="flex bg-gray-100/80 dark:bg-slate-800/80 backdrop-blur-md p-1 rounded-full border border-gray-200/50 dark:border-slate-700/50" role="group" aria-label="Trip type">
+      <div class="glass glass-grain flex p-1 rounded-full" role="group" aria-label="Trip type">
         <button
           type="button"
           @click="setTripType(false)"
           :aria-pressed="!isRoundTrip"
-          class="px-4 py-1.5 rounded-full text-xs font-bold transition-all cursor-pointer focus:ring-2 focus:ring-blue-500"
-          :class="[!isRoundTrip ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-white shadow-sm font-bold' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200']"
+          class="px-4 py-1.5 rounded-full text-xs transition-all cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 dark:focus-visible:outline-blue-300"
+          :class="[!isRoundTrip ? 'trip-segment-active' : 'text-slate-600 dark:text-slate-300 hover:text-blue-700 dark:hover:text-blue-300']"
         >
           One-Way
         </button>
@@ -16,8 +18,8 @@
           type="button"
           @click="setTripType(true)"
           :aria-pressed="isRoundTrip"
-          class="px-4 py-1.5 rounded-full text-xs font-bold transition-all cursor-pointer focus:ring-2 focus:ring-blue-500"
-          :class="[isRoundTrip ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-white shadow-sm font-bold' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200']"
+          class="px-4 py-1.5 rounded-full text-xs transition-all cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 dark:focus-visible:outline-blue-300"
+          :class="[isRoundTrip ? 'trip-segment-active' : 'text-slate-600 dark:text-slate-300 hover:text-blue-700 dark:hover:text-blue-300']"
         >
           Round-Trip (2-Way)
         </button>
@@ -40,7 +42,7 @@
           <button
             type="button"
             @click="requestLocation"
-            class="text-blue-500 hover:text-blue-700 transition-colors cursor-pointer"
+            class="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors cursor-pointer rounded-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 dark:focus-visible:outline-blue-300"
             aria-label="Use my current location as origin"
             title="Use my location"
           >
@@ -50,14 +52,16 @@
         </template>
       </LocationCombobox>
 
-      <!-- Swap Button -->
+      <!-- Swap Button. Hover is a scoped colour-mix rather than a `hover:bg-*`
+           utility: the utility would outrank the layered glass primitive and
+           flatten the material on hover. -->
       <button
         type="button"
         @click="swapLocations"
         aria-label="Swap origin and destination"
-        class="hidden lg:flex p-3 bg-gray-100 hover:bg-gray-200 dark:bg-slate-800 dark:hover:bg-slate-700 rounded-full mb-1 transition-colors group cursor-pointer border dark:border-slate-700"
+        class="glass swap-button hidden lg:flex p-3 rounded-full mb-1 transition-all group cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 dark:focus-visible:outline-blue-300"
       >
-        <ArrowRightLeft class="w-5 h-5 text-gray-600 dark:text-slate-300 group-hover:text-blue-600 transition-colors" />
+        <ArrowRightLeft class="w-5 h-5 text-slate-600 dark:text-slate-200 group-hover:text-blue-600 dark:group-hover:text-blue-300 transition-colors" />
       </button>
 
       <!-- To Location Input -->
@@ -81,7 +85,7 @@
           @change="notifyChange"
         />
         <div v-else class="w-full relative">
-          <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1" for="single-date">Departure Date</label>
+          <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1" for="single-date">Departure Date</label>
           <CustomDatePicker
             id="single-date"
             v-model="form.date"
@@ -91,10 +95,11 @@
         </div>
       </div>
       
-      <!-- Search Button -->
+      <!-- Search Button. Not a glass element, so a real `ring` focus indicator
+           works here -- and reads better than an outline against solid blue. -->
       <button 
         type="submit" 
-        class="w-full lg:w-auto bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-8 rounded-xl transition-colors shadow-md hover:shadow-lg flex items-center justify-center gap-2 mb-1 cursor-pointer"
+        class="w-full lg:w-auto bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-8 rounded-xl transition-colors shadow-md hover:shadow-lg flex items-center justify-center gap-2 mb-1 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-slate-900"
       >
         <Search class="w-5 h-5" />
         <span>Search Flights</span>
@@ -254,6 +259,27 @@ const submitSearch = () => {
 </script>
 
 <style scoped>
+/* The active segment sits on a `.glass` track, so its fill has to come from a
+   scoped rule: a `bg-*` utility would outrank the primitive and flatten it,
+   leaving the two segments indistinguishable. Colour + weight +
+   inset ring (not alpha alone) is what carries the state. */
+.trip-segment-active {
+  background-color: color-mix(in oklab, var(--color-glass-bg-subtle), white 72%);
+  color: var(--color-blue-700);
+  font-weight: 700;
+  box-shadow:
+    inset 0 0 0 1px color-mix(in oklab, var(--color-blue-500), transparent 45%),
+    0 1px 2px 0 var(--color-glass-shadow-tight);
+}
+
+/* Mixing toward white is the one hover direction that reads as "lift" in both
+   themes, because the underlying token is near-white in light mode and deep
+   navy in dark mode. Going through the token (rather than a hard-coded rgba)
+   is what keeps the hover correct across the theme swap. */
+.swap-button:hover {
+  background-color: color-mix(in oklab, var(--color-glass-bg-subtle), white 18%);
+}
+
 .fade-enter-active,
 .fade-leave-active {
   transition: opacity 0.15s ease, transform 0.15s ease;
@@ -263,5 +289,12 @@ const submitSearch = () => {
 .fade-leave-to {
   opacity: 0;
   transform: translateY(-4px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fade-enter-active,
+  .fade-leave-active {
+    transition-duration: 0.01ms;
+  }
 }
 </style>

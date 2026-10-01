@@ -1,43 +1,60 @@
 <template>
   <div
-    class="min-h-screen bg-gray-50 dark:bg-slate-950 flex flex-col font-sans text-gray-900 dark:text-slate-100 transition-colors duration-300 relative"
+    class="min-h-screen flex flex-col font-sans text-gray-900 dark:text-slate-100 transition-colors duration-300 relative"
   >
-    <!-- Decorative Glowing Blobs for 2026 Glassmorphism Trend -->
-    <div class="fixed inset-0 -z-10 overflow-hidden pointer-events-none">
+    <!-- The canvas layer. `.canvas` paints seven large cloud masses plus the
+         grain tile over the body's own base colour, so the root deliberately
+         carries no solid fill -- an opaque background here would be the one
+         thing a backdrop-filter could never refract. -->
+    <div class="canvas fixed inset-0 -z-10 pointer-events-none overflow-hidden">
+      <!-- Two extra atmospheric washes on top of the canvas: very large, very
+           soft, and faint enough to read as depth rather than as blobs. Anything
+           tighter is what turned the old pair of circles into visible discs. -->
       <div
-        class="absolute -top-[10%] -left-[10%] w-[50%] h-[50%] rounded-full bg-blue-400/20 dark:bg-blue-600/10 blur-[120px]"
+        class="absolute -top-[32%] -left-[22%] w-[85%] h-[75%] rounded-full bg-sky-200/25 dark:bg-blue-600/10 blur-[160px]"
       ></div>
       <div
-        class="absolute -bottom-[10%] -right-[10%] w-[50%] h-[50%] rounded-full bg-indigo-400/20 dark:bg-indigo-600/10 blur-[120px]"
+        class="absolute -bottom-[28%] -right-[18%] w-[75%] h-[70%] rounded-full bg-violet-200/25 dark:bg-violet-600/10 blur-[160px]"
       ></div>
     </div>
 
-    <!-- Header Block -->
-    <header
-      class="bg-blue-600 dark:bg-slate-900/60 backdrop-blur-md text-white shadow-md border-b dark:border-slate-800 transition-colors relative z-40"
-    >
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
+    <!-- Floating header. Sticky, and `.glass-card` rather than `.glass-elevated`:
+         it sits directly on the high-key canvas where a 0.38 fill already leaves
+         dark body text at ~13:1, so the denser level would buy nothing and cost
+         the sense of air. `.glass-grain` on top of it because a bar this large is
+         the surface most likely to read as a flat vector fill. -->
+    <header class="sticky top-0 z-40 px-3 pt-3 sm:px-5 sm:pt-4 lg:px-6">
+      <div
+        class="glass-card glass-grain mx-auto max-w-7xl rounded-glass-lg px-4 sm:px-6 lg:px-8 py-3 flex justify-between items-center gap-4"
+      >
         <!-- Logo -->
-        <NuxtLink to="/" class="flex items-center gap-2 cursor-pointer select-none">
-          <Plane class="w-8 h-8 rotate-45 text-blue-100 dark:text-blue-400" />
+        <NuxtLink
+          to="/"
+          class="pill outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 dark:focus-visible:outline-blue-300 flex items-center gap-2 rounded-xl cursor-pointer select-none"
+        >
+          <Plane class="w-7 h-7 rotate-45 text-blue-600 dark:text-blue-400" />
+          <!-- Accent-tinted rather than white-on-blue: the bar is now light in
+               light mode, so a white gradient would simply disappear. -->
           <h1
-            class="text-2xl font-black tracking-tight bg-gradient-to-r from-white to-blue-100 bg-clip-text text-transparent"
+            class="text-xl sm:text-2xl font-black tracking-tight bg-gradient-to-r from-blue-700 via-blue-600 to-indigo-600 dark:from-blue-300 dark:via-blue-200 dark:to-indigo-300 bg-clip-text text-transparent"
           >
             SkyCrawler
           </h1>
         </NuxtLink>
 
         <!-- Header Navigation Links -->
-        <div class="flex items-center gap-6">
-          <nav>
-            <ul
-              class="flex space-x-2 sm:space-x-4 font-bold text-sm text-blue-100 dark:text-slate-300"
-            >
+        <div class="flex items-center gap-3 sm:gap-5">
+          <nav aria-label="Primary">
+            <ul class="flex items-center gap-1 sm:gap-2 text-sm">
               <li>
                 <NuxtLink
                   to="/"
-                  class="px-3 py-1.5 rounded-lg hover:text-white dark:hover:text-slate-100 hover:bg-white/10 dark:hover:bg-slate-800 transition-all cursor-pointer select-none"
-                  :class="[route.path === '/' ? 'bg-white/20 text-white font-black' : '']"
+                  class="pill outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 dark:focus-visible:outline-blue-300 rounded-full px-3.5 py-1.5 transition-colors duration-200 cursor-pointer select-none"
+                  :class="[
+                    route.path === '/'
+                      ? 'bg-blue-600 text-white font-black shadow-md shadow-blue-500/25'
+                      : 'glass glass-hover text-slate-600 dark:text-slate-300 font-semibold hover:text-slate-900 dark:hover:text-white',
+                  ]"
                 >
                   Flights
                 </NuxtLink>
@@ -45,8 +62,12 @@
               <li>
                 <NuxtLink
                   to="/hotels"
-                  class="px-3 py-1.5 rounded-lg hover:text-white dark:hover:text-slate-100 hover:bg-white/10 dark:hover:bg-slate-800 transition-all cursor-pointer select-none"
-                  :class="[route.path === '/hotels' ? 'bg-white/20 text-white font-black' : '']"
+                  class="pill outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 dark:focus-visible:outline-blue-300 rounded-full px-3.5 py-1.5 transition-colors duration-200 cursor-pointer select-none"
+                  :class="[
+                    route.path === '/hotels'
+                      ? 'bg-blue-600 text-white font-black shadow-md shadow-blue-500/25'
+                      : 'glass glass-hover text-slate-600 dark:text-slate-300 font-semibold hover:text-slate-900 dark:hover:text-white',
+                  ]"
                 >
                   Hotels
                 </NuxtLink>
@@ -63,15 +84,18 @@
 
     <!-- Main Content Grid -->
     <main class="flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full relative z-10">
-      <!-- Premium Glassmorphic Switcher Tab pills -->
+      <!-- Premium Glassmorphic Switcher Tab pills. The active state uses the
+           accent fill plus `font-black` and a coloured shadow, so selection is
+           carried by colour and weight -- never by an alpha difference alone,
+           which is invisible to anyone who cannot separate the two fills. -->
       <div class="flex items-center gap-2 mb-6">
         <NuxtLink
           to="/"
-          class="flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-black transition-all cursor-pointer border select-none"
+          class="pill outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 dark:focus-visible:outline-blue-300 flex items-center gap-2 px-5 py-2.5 rounded-full text-sm transition-colors duration-200 cursor-pointer select-none"
           :class="[
             route.path === '/'
-              ? 'bg-blue-600 text-white border-blue-600 shadow-md shadow-blue-500/25'
-              : 'bg-white/40 dark:bg-slate-900/40 border-white/30 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:bg-white/60 dark:hover:bg-slate-900/60',
+              ? 'bg-blue-600 text-white font-black shadow-md shadow-blue-500/25'
+              : 'glass glass-hover text-slate-600 dark:text-slate-300 font-bold hover:text-slate-900 dark:hover:text-white',
           ]"
         >
           <Plane class="w-4 h-4" />
@@ -79,11 +103,11 @@
         </NuxtLink>
         <NuxtLink
           to="/hotels"
-          class="flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-black transition-all cursor-pointer border select-none"
+          class="pill outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 dark:focus-visible:outline-blue-300 flex items-center gap-2 px-5 py-2.5 rounded-full text-sm transition-colors duration-200 cursor-pointer select-none"
           :class="[
             route.path === '/hotels'
-              ? 'bg-blue-600 text-white border-blue-600 shadow-md shadow-blue-500/25'
-              : 'bg-white/40 dark:bg-slate-900/40 border-white/30 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:bg-white/60 dark:hover:bg-slate-900/60',
+              ? 'bg-blue-600 text-white font-black shadow-md shadow-blue-500/25'
+              : 'glass glass-hover text-slate-600 dark:text-slate-300 font-bold hover:text-slate-900 dark:hover:text-white',
           ]"
         >
           <Building class="w-4 h-4" />
@@ -95,10 +119,13 @@
       <NuxtPage />
     </main>
 
+    <!-- Footer. No band and no top border: the old opaque strip was a hard
+         horizontal stop that cut the canvas in half. It now just floats on the
+         same atmosphere as everything else. -->
     <footer
-      class="bg-slate-100 dark:bg-slate-900 py-8 text-center mt-auto border-t dark:border-slate-800"
+      class="mt-auto w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 text-center"
     >
-      <p class="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">
+      <p class="text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-widest">
         &copy; {{ new Date().getFullYear() }} SkyCrawler. Curating The Smart Travel Network.
       </p>
     </footer>
@@ -117,3 +144,25 @@ const handleCurrencyChange = () => {
   window.dispatchEvent(new CustomEvent('currency-changed'));
 };
 </script>
+
+<style scoped>
+/* The glass primitives live in `@layer components`, so a Tailwind utility now
+   overrides them -- but a `hover:bg-white/40` utility would still flatten the
+   material to a solid wash, which is the opposite of what a glass hover wants.
+   The hover fill therefore stays in a rule here. The focus rings that go with it
+   use `outline` rather than `ring-*` for a different reason: Tailwind composes
+   rings into `box-shadow`, which `.glass` claims for its own shadow stack, so a
+   ring there would stack rather than replace and never read as a focus ring. */
+.glass-hover:hover {
+  background-color: color-mix(in oklab, var(--color-glass-bg-subtle) 45%, white);
+}
+
+/* The reduced-motion block in main.css covers `.glass` itself but not the
+   colour transitions these pills add on top of it. */
+@media (prefers-reduced-motion: reduce) {
+  .glass-hover,
+  .pill {
+    transition-duration: 0.01ms;
+  }
+}
+</style>

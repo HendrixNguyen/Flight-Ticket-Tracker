@@ -1,11 +1,11 @@
 <template>
   <div ref="containerRef" class="flex-1 w-full relative">
-    <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1" :for="inputId">
+    <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1" :for="inputId">
       {{ label }}
     </label>
 
     <div class="relative">
-      <MapPin class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5 pointer-events-none" />
+      <MapPin class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-600 dark:text-slate-400 w-5 h-5 pointer-events-none" />
       <input
         :id="inputId"
         ref="inputRef"
@@ -19,10 +19,8 @@
         aria-autocomplete="list"
         aria-haspopup="listbox"
         :placeholder="placeholder"
-        class="w-full pl-10 pr-10 py-3 border rounded-xl bg-white dark:bg-slate-900/60 focus:ring-2 focus:ring-blue-500 transition-shadow outline-none dark:text-slate-100 font-medium"
-        :class="[
-          hasValue ? 'border-blue-400 dark:border-blue-500' : 'border-gray-300 dark:border-slate-700',
-        ]"
+        class="glass-card w-full pl-10 pr-10 py-3 rounded-xl text-slate-900 dark:text-slate-100 placeholder:text-slate-600 dark:placeholder:text-slate-400 font-medium focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 dark:focus-visible:outline-blue-300"
+        :class="[hasValue ? 'input-has-value' : '']"
         @input="handleInput"
         @focus="handleFocus"
         @keydown="handleKeydown"
@@ -32,7 +30,7 @@
         <button
           v-if="hasValue"
           type="button"
-          class="text-gray-400 hover:text-gray-600 dark:hover:text-slate-300 transition-colors cursor-pointer"
+          class="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 transition-colors cursor-pointer rounded-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 dark:focus-visible:outline-blue-300"
           aria-label="Clear location"
           @click="clearSelection"
         >
@@ -46,14 +44,14 @@
     <transition name="fade">
       <div
         v-if="isOpen"
-        class="absolute z-50 left-0 right-0 mt-2 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md rounded-2xl border border-gray-100 dark:border-slate-800 shadow-xl shadow-gray-200/50 dark:shadow-black/50 max-h-72 overflow-y-auto py-2"
+        class="glass-elevated glass-grain absolute z-50 left-0 right-0 mt-2 rounded-2xl max-h-72 overflow-y-auto py-2"
       >
-        <div v-if="isLoading" class="px-4 py-3 flex items-center gap-3 text-sm text-gray-500">
-          <Loader2 class="w-4 h-4 animate-spin text-blue-500" />
+        <div v-if="isLoading" class="px-4 py-3 flex items-center gap-3 text-sm text-slate-600 dark:text-slate-300">
+          <Loader2 class="w-4 h-4 animate-spin text-blue-600 dark:text-blue-400" />
           <span>Searching locations...</span>
         </div>
 
-        <div v-else-if="suggestions.length === 0" class="px-4 py-3 text-sm text-gray-500">
+        <div v-else-if="suggestions.length === 0" class="px-4 py-3 text-sm text-slate-600 dark:text-slate-300">
           No locations found. Type to search.
         </div>
 
@@ -62,7 +60,7 @@
           :id="listboxId"
           role="listbox"
           :aria-label="`${label} suggestions`"
-          class="divide-y divide-gray-50 dark:divide-slate-800/50"
+          class="divide-y divide-white/70 dark:divide-white/10"
         >
           <li
             v-for="(suggestion, index) in suggestions"
@@ -72,19 +70,19 @@
             :aria-selected="index === activeIndex"
             class="px-4 py-3 flex items-start gap-3 cursor-pointer transition-colors duration-150"
             :class="index === activeIndex
-              ? 'bg-blue-50 dark:bg-blue-800/30 ring-2 ring-inset ring-blue-500'
-              : 'hover:bg-gray-50 dark:hover:bg-slate-800'"
+              ? 'bg-blue-500/20 dark:bg-blue-500/30 ring-1 ring-inset ring-blue-600/70 dark:ring-blue-300/70'
+              : 'hover:bg-white/70 dark:hover:bg-white/10'"
             @mousedown.prevent="select(suggestion)"
             @mouseenter="activeIndex = index"
           >
-            <Plane v-if="suggestion.type === 'airport'" class="w-5 h-5 text-blue-500 shrink-0 mt-0.5" />
-            <Building v-else class="w-5 h-5 text-gray-500 dark:text-slate-400 shrink-0 mt-0.5" />
+            <Plane v-if="suggestion.type === 'airport'" class="w-5 h-5 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
+            <Building v-else class="w-5 h-5 text-slate-600 dark:text-slate-400 shrink-0 mt-0.5" />
             <div class="flex-grow min-w-0">
-              <div class="font-semibold text-sm text-gray-900 dark:text-slate-100 truncate">
+              <div class="font-semibold text-sm text-slate-900 dark:text-slate-100 truncate">
                 {{ suggestion.name }}
-                <span v-if="iataOf(suggestion)" class="text-blue-600 dark:text-blue-400 ml-1 font-bold">({{ iataOf(suggestion) }})</span>
+                <span v-if="iataOf(suggestion)" class="text-blue-700 dark:text-blue-300 ml-1 font-bold">({{ iataOf(suggestion) }})</span>
               </div>
-              <div class="text-xs text-gray-500 dark:text-slate-400 truncate mt-0.5">{{ suggestion.description }}</div>
+              <div class="text-xs text-slate-600 dark:text-slate-300 truncate mt-0.5">{{ suggestion.description }}</div>
             </div>
             <slot name="option" :suggestion="suggestion" />
           </li>
@@ -328,6 +326,17 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
+/* The listbox's `absolute` needs no rule here: the glass primitives live in
+   `@layer components`, so the utility wins on its own. */
+
+/* The "a location is chosen" cue stays a scoped rule rather than a
+   `border-blue-*` utility because the input is a `.glass` surface, and a
+   utility border would swap the pane's hairline out for a single flat colour --
+   losing the specular lip the material depends on. */
+.input-has-value {
+  border-color: var(--color-blue-400);
+}
+
 .fade-enter-active,
 .fade-leave-active {
   transition: opacity 0.15s ease, transform 0.15s ease;
@@ -337,5 +346,12 @@ onUnmounted(() => {
 .fade-leave-to {
   opacity: 0;
   transform: translateY(-4px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fade-enter-active,
+  .fade-leave-active {
+    transition-duration: 0.01ms;
+  }
 }
 </style>

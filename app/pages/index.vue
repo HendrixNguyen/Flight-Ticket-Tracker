@@ -1,8 +1,16 @@
 <template>
   <div class="flex flex-col gap-4 w-full">
     
-    <!-- Search Card Form Section -->
-    <div class="bg-white/40 dark:bg-slate-900/40 backdrop-blur-xl p-6 rounded-3xl shadow-sm border border-white/40 dark:border-white/10 mb-8 transform hover:shadow-md transition-all relative z-20">
+    <!-- Search Card Form Section.
+
+         `.glass-card` carries its own fill, blur, border and layered shadow, so
+         the old `bg-white/40 backdrop-blur-xl border-white/40 shadow-sm
+         hover:shadow-md` stack on top of it was not adding depth -- each of those
+         utilities replaces part of the material and flattens it to a single dead
+         fill. `.glass-grain` on top because a pane this large is the surface
+         most likely to read as flat vector; the lift is a scoped rule for the
+         same reason (see the style block). -->
+    <div class="glass-card glass-grain search-pane p-6 rounded-3xl mb-8 relative z-20">
       <FlightSearchForm
         :initial="formInitial"
         @search="handleFlightSearch"
@@ -33,12 +41,20 @@
       <section class="w-full lg:w-3/4">
         <div v-if="isSearching" class="flex flex-col justify-center items-center py-20 gap-4">
           <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-          <p class="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest animate-pulse">Crawling real-time flight deals...</p>
+          <p class="text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-widest animate-pulse">Crawling real-time flight deals...</p>
         </div>
-        
-        <div v-else-if="hasFailed" class="bg-red-50 dark:bg-red-950/20 text-red-600 dark:text-red-400 p-4 rounded-2xl border border-red-200/50 dark:border-red-900/30 flex flex-col gap-2">
-          <h4 class="font-bold text-sm">Search Interrupted</h4>
-          <p class="text-xs">{{ errorMessage || 'An unexpected API connection error occurred. Please try again.' }}</p>
+
+        <!-- Deliberately NOT `.glass`: a neutral pane here would read as an empty
+             result, and this state means the opposite. It keeps the same
+             translucency and blur so it still belongs to the atmosphere, but the
+             fill, the border and the shadow are all red, and the icon plus the
+             heading carry the meaning without relying on colour alone. -->
+        <div v-else-if="hasFailed" class="error-panel p-4 rounded-2xl flex items-start gap-3 text-red-700 dark:text-red-300">
+          <CircleAlert class="w-5 h-5 flex-none mt-0.5" aria-hidden="true" />
+          <div class="flex flex-col gap-1">
+            <h4 class="font-bold text-sm">Search Interrupted</h4>
+            <p class="text-xs">{{ errorMessage || 'An unexpected API connection error occurred. Please try again.' }}</p>
+          </div>
         </div>
         
         <div v-else>
@@ -60,6 +76,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useRoute, useRouter } from '#imports';
+import { CircleAlert } from 'lucide-vue-next';
 import type { Flight, SearchQuery, FilterOptions, SortOption } from '~/types';
 import { FLIGHT_DEFAULT_FILTERS, FLIGHT_PRICE_RANGE } from '~/utils/filterDefaults';
 import { useCurrency } from '~/composables/useCurrency';
@@ -253,3 +270,54 @@ const filteredAndSortedFlights = computed(() => {
   return result;
 });
 </script>
+
+<style scoped>
+/* The pane's own lift. `.glass*` sets both `transition` and `box-shadow`, so a
+   `transition-all` or `hover:shadow-md` utility would replace one of them rather
+   than compose with this stack, leaving the pane half-animated. Restating the
+   transition here keeps the hover motion and the material cross-fade together.
+   `--glass-shadow` is the primitive's own variable, so
+   deepening it on hover scales the whole shadow stack instead of replacing it
+   with a flat one. */
+.search-pane {
+  transition:
+    transform 0.35s cubic-bezier(0.22, 1, 0.36, 1),
+    background-color 0.3s ease,
+    border-color 0.3s ease,
+    box-shadow 0.35s ease;
+}
+
+.search-pane:hover {
+  transform: translateY(-2px);
+  --glass-shadow:
+    0 1px 2px 0 var(--color-glass-shadow-tight),
+    0 14px 40px -10px var(--color-glass-shadow-soft),
+    inset 0 1px 0 0 var(--color-glass-specular),
+    0 0 0 1px var(--color-glass-halo),
+    inset 0 -1px 0 0 var(--color-glass-shadow-tight);
+}
+
+/* Error state. Glass geometry, alarm colours: the fill sits at red-100/900 so it
+   is unmistakably not an empty result, the border is a red hairline, and the
+   shadow is tinted with the same hue so the panel glows rather than floats. */
+.error-panel {
+  background-color: light-dark(rgba(254, 226, 226, 0.78), rgba(76, 5, 25, 0.62));
+  -webkit-backdrop-filter: blur(18px) saturate(160%);
+  backdrop-filter: blur(18px) saturate(160%);
+  border: 1px solid light-dark(rgba(239, 68, 68, 0.38), rgba(248, 113, 113, 0.3));
+  box-shadow:
+    0 1px 2px 0 var(--color-glass-shadow-tight),
+    0 8px 28px -10px light-dark(rgba(190, 18, 60, 0.3), rgba(2, 4, 12, 0.6)),
+    inset 0 1px 0 0 light-dark(rgba(255, 255, 255, 0.65), rgba(255, 255, 255, 0.12));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .search-pane {
+    transition-duration: 0.01ms;
+  }
+
+  .search-pane:hover {
+    transform: none;
+  }
+}
+</style>
