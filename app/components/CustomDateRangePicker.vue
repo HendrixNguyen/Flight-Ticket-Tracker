@@ -2,29 +2,31 @@
   <div ref="rangeContainer" class="relative w-full flex flex-col md:flex-row gap-4 items-end">
     <!-- Departure Input Trigger -->
     <div class="flex-1 w-full relative">
-      <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1" for="departure-btn">Departure</label>
-      <button 
+      <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1" for="departure-btn">Departure</label>
+      <button
         id="departure-btn"
         type="button"
         @click="openCalendar('start')"
-        class="w-full flex items-center gap-3 pl-10 pr-4 py-3 border border-gray-300 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-900/60 focus:ring-2 focus:ring-blue-500 outline-none text-left cursor-pointer transition-all dark:text-slate-100 font-medium"
+        class="glass-card w-full flex items-center gap-3 pl-10 pr-4 py-3 rounded-xl text-left cursor-pointer text-slate-900 dark:text-slate-100 font-medium focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 dark:focus-visible:outline-blue-300"
       >
-        <Calendar class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
-        <span>{{ formattedStart }}</span>
+        <!-- Icon must sit inside the button: as an absolute sibling it would
+             centre against the label+button wrapper and sit too low. -->
+        <Calendar class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-600 dark:text-slate-400 w-5 h-5 pointer-events-none" />
+        <span :class="startDate ? '' : 'text-slate-600 dark:text-slate-400'">{{ formattedStart }}</span>
       </button>
     </div>
 
     <!-- Return Input Trigger -->
     <div class="flex-1 w-full relative">
-      <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1" for="return-btn">Return</label>
-      <button 
+      <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1" for="return-btn">Return</label>
+      <button
         id="return-btn"
         type="button"
         @click="openCalendar('end')"
-        class="w-full flex items-center gap-3 pl-10 pr-4 py-3 border border-gray-300 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-900/60 focus:ring-2 focus:ring-blue-500 outline-none text-left cursor-pointer transition-all dark:text-slate-100 font-medium"
+        class="glass-card w-full flex items-center gap-3 pl-10 pr-4 py-3 rounded-xl text-left cursor-pointer text-slate-900 dark:text-slate-100 font-medium focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 dark:focus-visible:outline-blue-300"
       >
-        <Calendar class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
-        <span>{{ formattedEnd }}</span>
+        <Calendar class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-600 dark:text-slate-400 w-5 h-5 pointer-events-none" />
+        <span :class="endDate ? '' : 'text-slate-600 dark:text-slate-400'">{{ formattedEnd }}</span>
       </button>
     </div>
 
@@ -32,7 +34,7 @@
     <transition name="fade">
       <div 
         v-if="isOpen"
-        class="absolute z-50 left-0 mt-2 w-80 bg-white/90 dark:bg-slate-900/85 backdrop-blur-2xl border border-white/50 dark:border-white/10 shadow-xl shadow-blue-500/5 dark:shadow-black/40 rounded-3xl p-5"
+        class="glass-elevated absolute z-50 left-0 mt-2 w-80 rounded-3xl p-5"
         style="top: 100%;"
       >
         <!-- Header controls -->
@@ -40,26 +42,28 @@
           <button 
             type="button"
             @click="prevMonth"
-            class="w-9 h-9 rounded-full bg-white/70 dark:bg-slate-800/60 border border-white/50 dark:border-white/10 flex items-center justify-center cursor-pointer shadow-sm text-slate-700 dark:text-slate-300 hover:bg-white dark:hover:bg-slate-700/80 transition-all font-bold"
+            aria-label="Previous month"
+            class="nav-button glass w-9 h-9 rounded-full flex items-center justify-center cursor-pointer text-slate-700 dark:text-slate-200 font-bold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 dark:focus-visible:outline-blue-300"
           >
             &lt;
           </button>
           
           <div class="flex gap-2">
-            <div class="bg-white/70 dark:bg-slate-800/60 border border-white/50 dark:border-white/10 px-3 py-1.5 rounded-xl font-bold text-xs text-slate-800 dark:text-slate-100 flex items-center relative pr-4">
+            <div class="glass rounded-xl px-3 py-1.5 font-bold text-xs text-slate-800 dark:text-slate-100 flex items-center relative pr-4">
               {{ monthNames[currentMonth] }}
-              <div class="w-0 h-0 border-l-[3px] border-l-transparent border-r-[3px] border-r-transparent border-b-[3px] border-b-blue-500 absolute bottom-1.5 right-1.5 rotate-135"></div>
+              <div class="w-0 h-0 border-l-[3px] border-l-transparent border-r-[3px] border-r-transparent border-b-[3px] border-b-blue-500 dark:border-b-blue-300 absolute bottom-1.5 right-1.5 rotate-135"></div>
             </div>
-            <div class="bg-white/70 dark:bg-slate-800/60 border border-white/50 dark:border-white/10 px-3 py-1.5 rounded-xl font-bold text-xs text-slate-800 dark:text-slate-100 flex items-center relative pr-4">
+            <div class="glass rounded-xl px-3 py-1.5 font-bold text-xs text-slate-800 dark:text-slate-100 flex items-center relative pr-4">
               {{ currentYear }}
-              <div class="w-0 h-0 border-l-[3px] border-l-transparent border-r-[3px] border-r-transparent border-b-[3px] border-b-blue-500 absolute bottom-1.5 right-1.5 rotate-135"></div>
+              <div class="w-0 h-0 border-l-[3px] border-l-transparent border-r-[3px] border-r-transparent border-b-[3px] border-b-blue-500 dark:border-b-blue-300 absolute bottom-1.5 right-1.5 rotate-135"></div>
             </div>
           </div>
 
           <button 
             type="button"
             @click="nextMonth"
-            class="w-9 h-9 rounded-full bg-white/70 dark:bg-slate-800/60 border border-white/50 dark:border-white/10 flex items-center justify-center cursor-pointer shadow-sm text-slate-700 dark:text-slate-300 hover:bg-white dark:hover:bg-slate-700/80 transition-all font-bold"
+            aria-label="Next month"
+            class="nav-button glass w-9 h-9 rounded-full flex items-center justify-center cursor-pointer text-slate-700 dark:text-slate-200 font-bold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 dark:focus-visible:outline-blue-300"
           >
             &gt;
           </button>
@@ -67,37 +71,42 @@
 
         <!-- Weekday Labels -->
         <div class="grid grid-cols-7 gap-1.5 text-center mb-2">
-          <span v-for="day in ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su']" :key="day" class="text-[11px] font-bold text-slate-600 dark:text-slate-400">
+          <span v-for="day in ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su']" :key="day" class="text-[11px] font-bold text-slate-600 dark:text-slate-300">
             {{ day }}
           </span>
         </div>
 
         <!-- Days Grid -->
         <div class="grid grid-cols-7 gap-1.5">
-          <!-- Blanks -->
+          <!-- Blanks. Pure grid padding to line the 1st up with its weekday, so
+               they stay near-invisible rather than competing with real days. -->
           <div 
             v-for="blank in blanks" 
             :key="'blank-' + blank"
-            class="aspect-square flex items-center justify-center text-xs font-semibold text-slate-300 dark:text-slate-700 pointer-events-none"
+            class="aspect-square flex items-center justify-center text-xs font-semibold text-slate-400/50 dark:text-slate-600/50 pointer-events-none select-none"
+            aria-hidden="true"
           >
             {{ blank }}
           </div>
           
-          <!-- Standard range days -->
+          <!-- Standard range days. Three visually distinct states, in
+               descending order of weight: an endpoint is the only cell with a
+               solid gradient, an in-range day is a soft accent wash, and a
+               plain day has no surface at all -- the gap is the structure. -->
           <button
             v-for="day in daysInMonth"
             :key="day"
             type="button"
             @click="selectDay(day)"
             :disabled="isDateDisabled(day)"
-            class="aspect-square flex items-center justify-center text-xs font-semibold rounded-xl cursor-pointer transition-all duration-150"
+            class="day-cell aspect-square flex items-center justify-center text-xs font-semibold rounded-xl cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-blue-600 dark:focus-visible:outline-blue-300"
             :class="[
               isExtreme(day) 
-                ? 'bg-gradient-to-br from-blue-500 to-indigo-600 text-white font-bold shadow-lg shadow-blue-500/25 border border-white/20' 
+                ? 'is-selected bg-gradient-to-br from-blue-500 to-indigo-600 text-white font-bold shadow-md shadow-blue-500/30' 
                 : isBetween(day)
-                  ? 'bg-blue-500/30 dark:bg-blue-500/50 text-blue-700 dark:text-blue-200 border border-blue-500/20 rounded-xl'
-                  : 'bg-white/40 dark:bg-slate-800/20 text-slate-800 dark:text-slate-100 hover:bg-blue-50 dark:hover:bg-slate-700 border border-white/10',
-              isDateDisabled(day) ? 'opacity-30 cursor-not-allowed pointer-events-none' : ''
+                  ? 'bg-blue-500/25 dark:bg-blue-500/35 text-blue-800 dark:text-blue-200 font-medium'
+                  : 'text-slate-800 dark:text-slate-100 hover:bg-white/70 dark:hover:bg-white/10',
+              isDateDisabled(day) ? 'opacity-40 cursor-not-allowed pointer-events-none' : ''
             ]"
           >
             {{ day }}
@@ -272,6 +281,36 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
+/* The calendar popover is a `.glass-elevated` element. Its `absolute` is a plain
+   utility that wins now that the primitives sit in `@layer components`, so no
+   positioning rule is needed here. */
+
+/* Hover on a glass chip is deliberately not a `hover:bg-*` utility: utilities
+   now outrank the primitive, so one would replace the material with a flat
+   wash. A colour-mix over the glass token lifts it in both
+   themes, because the token is near-white in light and deep navy in dark. */
+.nav-button:hover {
+  background-color: color-mix(in oklab, var(--color-glass-bg-subtle), white 18%);
+}
+
+.day-cell {
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+/* A plain `hover:bg-*` on a gradient-filled endpoint would replace the gradient
+   with a flat tint mid-hover, so the endpoint restates the gradient one step
+   lighter instead. */
+.day-cell.is-selected:hover {
+  background-image: linear-gradient(
+    to bottom right,
+    var(--color-blue-400),
+    var(--color-indigo-500)
+  );
+}
+
 .fade-enter-active,
 .fade-leave-active {
   transition: opacity 0.15s ease, transform 0.15s ease;
@@ -281,5 +320,13 @@ onUnmounted(() => {
 .fade-leave-to {
   opacity: 0;
   transform: translateY(-4px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fade-enter-active,
+  .fade-leave-active,
+  .day-cell {
+    transition-duration: 0.01ms;
+  }
 }
 </style>

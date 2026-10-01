@@ -2,20 +2,588 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
+/* ==========================================================================
+   DESIGN TOKENS
+   --------------------------------------------------------------------------
+   Two kinds of tokens live here:
+
+   1. A REPLACEMENT for the `slate`, `gray` and `blue` ramps. Every colour in
+      this app is a raw Tailwind utility (`text-slate-500`, `bg-white/40`,
+      `border-slate-800`, ...) rather than a semantic token, so overriding the
+      ramps is the cheapest global lever available: it re-tints all ~137
+      existing colour usages at once, with zero component edits. The shifts are
+      deliberately subtle -- cooler, more neutral greys and a slightly deeper,
+      bluer accent -- and the light/dark relationship of each ramp is preserved
+      (50 stays near-white, 950 stays near-black), so nothing inverts.
+   2. Semantic tokens for the glass primitives and the page canvas, so the
+      primitives never hardcode an rgba() value.
+   ========================================================================== */
 @theme {
+  /* -- brand tokens (pre-existing, retained) ------------------------------ */
   --color-primary: #3b82f6; /* Blue 500 */
   --color-secondary: #1e40af; /* Blue 800 */
   --color-accent: #f59e0b; /* Amber 500 */
-  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+
+  /* `Inter` was declared here but never actually loaded, so the whole app was
+     silently falling back to system-ui. nuxt.config.ts now injects the Google
+     Fonts stylesheet; this chain keeps the app rendering acceptably (and in
+     roughly the right rhythm) if that request fails or is blocked. */
+  --font-sans:
+    'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto,
+    'Helvetica Neue', Arial, sans-serif;
+  --default-font-family: var(--font-sans);
+
+  /* -- re-tinted `slate` ramp: cooler + more neutral ---------------------- */
+  --color-slate-50: #f7f9fc;
+  --color-slate-100: #eef2f7;
+  --color-slate-200: #e1e8f0;
+  --color-slate-300: #c9d3e2;
+  --color-slate-400: #8d9cb4;
+  --color-slate-500: #64748f;
+  --color-slate-600: #47506b;
+  --color-slate-700: #333b52;
+  --color-slate-800: #212a3d;
+  --color-slate-900: #131a2b;
+  --color-slate-950: #080c16;
+
+  /* -- re-tinted `gray` ramp: pulled slightly toward the slate ramp so the
+        two greys stop reading as visibly different families ---------------- */
+  --color-gray-50: #f8fafc;
+  --color-gray-100: #f1f4f8;
+  --color-gray-200: #e3e8f0;
+  --color-gray-300: #ccd4e0;
+  --color-gray-400: #95a0b2;
+  --color-gray-500: #64708a;
+  --color-gray-600: #4a5368;
+  --color-gray-700: #363e50;
+  --color-gray-800: #212736;
+  --color-gray-900: #131722;
+  --color-gray-950: #080b12;
+
+  /* -- re-tinted `blue` ramp: a touch deeper and bluer so it reads as a
+        confident Apple-ish system blue rather than a flat web blue ------- */
+  --color-blue-50: #eef4ff;
+  --color-blue-100: #dbe7fe;
+  --color-blue-200: #c2d6fd;
+  --color-blue-300: #9fc2fb;
+  --color-blue-400: #6aa8f7;
+  --color-blue-500: #3d7ef0;
+  --color-blue-600: #2a63e0;
+  --color-blue-700: #1f4fc9;
+  --color-blue-800: #1c3fae;
+  --color-blue-900: #1a348c;
+  --color-blue-950: #131f4d;
+
+  /* ==========================================================================
+     GLASS TOKENS
+     --------------------------------------------------------------------------
+     These are the light-mode values. The `.dark` block further down re-declares
+     every one of them, so the primitives reference tokens rather than baked
+     rgba() literals and a single edit re-tints the whole system.
+
+     FILL ALPHA -- the "through clouds" direction.
+     A pane is a window, not a surface. The old values (0.34 / 0.50 / 0.72
+     white) put 50% of an opaque white between the reader and the canvas, which
+     is what made the material read as a frosted plastic slab: the background
+     stopped being visible and only its blurred residue showed. These are much
+     lower, so the cloud masses genuinely read *through* the pane and the
+     backdrop-filter has real colour to bend.
+
+     The light-mode fills are near-white with a whisper of blue in them rather
+     than pure white. That is deliberate and it is what makes the specular work
+     (see below) -- but it is ALSO constrained from below by text contrast: see
+     the contrast note under the canvas section before raising the blue in them.
+
+     `specular` -- the light catch along the top inner edge, the one detail
+     that actually sells glass. A white hairline is only visible if there is
+     something for it to be brighter *than*, and that something is the pane
+     immediately below it. Two things provide it:
+       - the fill is very slightly cooler and fractionally darker than the
+         canvas behind it, so the line has a few percent of luminance to climb;
+       - the tight inset shadow on the bottom inner edge darkens the pane
+         immediately under the lip, which is what makes the bright line pop
+         instead of dissolving into the fill.
+     Light mode can therefore afford a very strong 0.92 -- it is not fighting
+     the background, it is fighting its own fill.
+
+     DARK MODE IS THE OPPOSITE CASE, and this is what the old comment got
+     backwards. A dark fill has almost no luminance of its own (L ~= 0.02), so a
+     0.55 white line is an enormous *relative* jump -- roughly 25x the fill's
+     own luminance, versus about 1.05x in light mode where the fill is already
+     near-white. The eye needs a big absolute lift to register a highlight on a
+     dark surface, which is why dark mode is the one that genuinely needs the
+     stronger-looking specular, even though its alpha (0.55) is the lower of the
+     two numbers. The comparison that matters is highlight-to-fill contrast
+     ratio, not the raw alpha, and the old comment compared the wrong thing.
+     ========================================================================== */
+  --color-glass-bg-subtle: rgba(255, 255, 255, 0.26); /* .glass */
+  --color-glass-bg: rgba(250, 253, 255, 0.38); /* .glass-card */
+  --color-glass-bg-strong: rgba(247, 251, 255, 0.66); /* .glass-elevated */
+  --color-glass-border: rgba(255, 255, 255, 0.62);
+  --color-glass-specular: rgba(255, 255, 255, 0.92);
+  /* The weaker sibling of `specular`: used on `.glass` (a chip or a hairline
+     divider does not need the full-strength lip) and as the second, softer
+     inner ring that gives light mode its edge definition. */
+  --color-glass-specular-soft: rgba(255, 255, 255, 0.5);
+  /* A 1px halo *outside* the border. The inner hairline describes the pane's
+     own lip; this halo separates the pane from whatever it is floating over,
+     which is the difference between "a rectangle" and "a floating sheet". */
+  --color-glass-halo: rgba(255, 255, 255, 0.55);
+  --color-glass-shadow-soft: rgba(28, 44, 82, 0.1);
+  --color-glass-shadow-tight: rgba(28, 44, 82, 0.08);
+  /* Used only by the @supports fallback. Raised from the previous 0.94: with
+     the fills now this transparent, the blur is doing most of the work of
+     keeping text legible, and if the blur is missing the alpha has to make up
+     for all of it. */
+  --color-glass-fallback: rgba(247, 250, 254, 0.97);
+
+  /* The page canvas base, so <body> can sit on the same colour as the canvas
+     layer painted over it (no seam while the canvas scrolls or is absent). */
+  --color-canvas-base: #f5f8fe;
+
+  /* Optional radius scale for glass surfaces. Nothing applies these by default
+     -- radius stays a per-element Tailwind utility (`rounded-2xl`, etc.) the way
+     the existing components already use it. They exist so a component that wants
+     a consistent glass corner treatment has one available. */
+  --radius-glass-sm: 0.875rem;
+  --radius-glass: 1.25rem;
+  --radius-glass-lg: 1.75rem;
 }
 
-body {
-  @apply bg-gray-50 dark:bg-slate-950 text-gray-900 dark:text-slate-100 transition-colors duration-300;
+/* Base `color-scheme`, declared BEFORE the `.dark` block below.
+   `:root` and `.dark` both match <html> at identical specificity (0,1,0), so
+   source order alone decides the winner -- and `.dark` loses to a later `:root`
+   rule. That silently forced `color-scheme: light` onto every dark-theme
+   document, which is what made native controls (scrollbars, form widgets, the
+   caret, the UA date picker) render light inside a dark UI, and why the ~50
+   `light-dark()` uses below resolved against the wrong scheme. It has to be
+   here, ahead of `.dark`, or it would override it again. */
+:root {
+  color-scheme: light;
 }
+
+/* Dark-mode token overrides.
+   `:root` (where @theme emits its variables) and `.dark` have identical
+   specificity, so this block MUST come after @theme to win -- and after the
+   `:root` block immediately above it, or `color-scheme` would flip back. */
+.dark {
+  --color-glass-bg-subtle: rgba(22, 30, 50, 0.34);
+  --color-glass-bg: rgba(18, 25, 43, 0.44);
+  --color-glass-bg-strong: rgba(15, 21, 38, 0.7);
+  --color-glass-border: rgba(255, 255, 255, 0.14);
+  /* See the specular note in @theme: the alpha is lower than light mode's 0.92,
+     but measured against a fill this dark it is by far the stronger highlight. */
+  --color-glass-specular: rgba(255, 255, 255, 0.55);
+  --color-glass-specular-soft: rgba(255, 255, 255, 0.18);
+  --color-glass-halo: rgba(255, 255, 255, 0.08);
+  --color-glass-shadow-soft: rgba(2, 4, 12, 0.6);
+  --color-glass-shadow-tight: rgba(2, 4, 12, 0.45);
+  --color-glass-fallback: rgba(10, 15, 26, 0.98);
+  --color-canvas-base: #080d18;
+
+  /* Tells the UA to render native widgets (scrollbars, form controls, the
+     caret, date pickers) against a dark background, so they don't flash light
+     inside a dark UI. Paired with the inline head script, which sets the same
+     value before first paint. */
+  color-scheme: dark;
+}
+
+:root {
+  /* ==========================================================================
+     MICRO-GRAIN
+     --------------------------------------------------------------------------
+     The single biggest realism cue for a frosted material, and the reason
+     rendered glass stops looking like a flat vector fill: real frosting has a
+     fine random grain at the scale of the surface, and a perfectly smooth
+     alpha ramp does not.
+
+     An inline SVG `feTurbulence` tile, ~330 bytes, no network request and no
+     asset to host. Three deliberate choices keep it below the threshold of
+     perception rather than becoming a visible pattern:
+       - the turbulence is desaturated to grey (`feColorMatrix saturate 0`), so
+         it dithers luminance only and cannot tint the canvas;
+       - the tile is drawn at 5% opacity, which is roughly +/-1% of luminance --
+         below what most displays resolve on a near-white surface;
+       - it is painted as a *background-image layer*, which in CSS always sits
+         UNDER an element's text content. It therefore cannot reduce text
+         contrast no matter how it is tuned, which a pseudo-element overlay
+         sitting on top of the content could.
+
+     The 120px tile is applied with `background-size` and `repeat` while the
+     gradient layers below it use `auto`/`no-repeat` -- hence the comma lists.
+
+     Opt-in for components via `.glass-grain`; on by default on the canvas,
+     which is the surface with the most area to look synthetic. Static, so
+     `prefers-reduced-motion` has nothing to switch off here; it is dropped
+     entirely under `prefers-contrast: more` below.
+     ========================================================================== */
+  --glass-grain-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)' opacity='0.05'/%3E%3C/svg%3E");
+  --glass-grain-size: 120px 120px;
+}
+
+/* The `body` rule is unlayered, which means it beats Tailwind's layered
+   utilities -- intentional here, since the body background is a global floor
+   rather than something a component should be able to override. It is now the
+   canvas base colour so it stays consistent with `.glass-canvas` underneath. */
+body {
+  @apply bg-canvas-base text-gray-900 dark:text-slate-100 transition-colors duration-300;
+}
+
+/* ==========================================================================
+   VIBRANCY GLASS PRIMITIVES -- "looking through cloud"
+   --------------------------------------------------------------------------
+   Three levels, so a surface can express its place in the hierarchy:
+
+     .glass            base / subtle  -- chips, inline badges, hover fills,
+                                        dividers sitting over the canvas
+     .glass-card       standard panel -- result cards, forms, list sections
+                                        (name kept: 8 components already use it)
+     .glass-elevated   floating       -- popovers, modals, sheets, menus
+
+   Every level shares one structural block and differs only in its custom
+   properties, which are then composed below. Four details do the heavy lifting:
+
+   1. saturate(). A plain blur() over a colourful background desaturates the
+      result and the surface looks dusty. `backdrop-filter` can also run a
+      colour filter, and stacking saturate() on top of the blur pushes the
+      refracted colours back to vivid. This matters MORE than it used to: the
+      fills are far more transparent now, so proportionally more of what the eye
+      sees is refracted canvas rather than fill, and without a strong saturate()
+      the cloud colours would arrive greyed out. The percentages are stepped up
+      alongside the blur for exactly this reason.
+   2. The inset top-edge specular highlight, described in the token block. A 1px
+      bright line along the top inner edge simulates light catching the rounded
+      lip of the pane, and it only reads because the fill beneath it is a touch
+      cooler and darker than the canvas.
+   3. The outer halo. A 1px ring of light outside the border. Without it the
+      pane's silhouette dissolves into a canvas that is, in light mode, almost
+      the same brightness as the pane itself.
+   4. Alpha that varies by level. `.glass` and `.glass-card` are windows.
+      `.glass-elevated` is not: it sits on top of other glass and holds dense
+      form content, so it stays markedly denser (0.66 light / 0.70 dark) and
+      carries a much larger shadow to sell the detachment.
+   ========================================================================== */
+
+/* The whole primitive block below lives in `@layer components` so that Tailwind
+   utilities -- which sit in `@layer utilities`, declared later -- can still
+   override it. Unlayered CSS beats every layer regardless of specificity, which
+   is what previously let the primitives silently swallow `absolute`, `sticky`,
+   `shadow-*` and `bg-*` utilities on any element carrying a glass class. */
+@layer components {
+  .glass,
+  .glass-card,
+  .glass-elevated {
+    position: relative;
+    /* Both the unprefixed and -webkit- property are required: Safari shipped
+       backdrop-filter unprefixed only recently, and iOS is a primary target. */
+    -webkit-backdrop-filter: var(--glass-filter);
+    backdrop-filter: var(--glass-filter);
+    border: 1px solid var(--color-glass-border);
+    box-shadow: var(--glass-shadow);
+    /* Theme switches should cross-fade the material rather than snap. */
+    transition:
+      background-color 0.3s ease,
+      border-color 0.3s ease,
+      box-shadow 0.3s ease;
+  }
+
+  /* --- level 1: .glass (subtle) -------------------------------------------
+     Barely-there material, meant to be layered on top of a card rather than
+     used as the main reading surface. 0.26 in light mode means a chip sitting on
+     a card lets the card -- and through it the canvas -- stay visible. */
+  .glass {
+    --glass-filter: blur(18px) saturate(175%);
+    background-color: var(--color-glass-bg-subtle);
+    /* Wide + soft for lift, plus a tight 1px one so the edge stays crisp against
+       a busy canvas. Without the tight shadow the panel's border dissolves. */
+    --glass-shadow:
+      0 1px 2px 0 var(--color-glass-shadow-tight),
+      0 4px 16px -4px var(--color-glass-shadow-soft),
+      inset 0 1px 0 0 var(--color-glass-specular-soft);
+  }
+
+  /* --- level 2: .glass-card (standard panel) ------------------------------
+     The main reading surface. Dropped from 0.50 to 0.38 white: the result is
+     that the cloud masses behind a card are plainly visible through it, which is
+     the whole point of the direction. Blur is up from 24px to 30px so the
+     canvas arrives softer and more out-of-focus, and saturate() is up from 180%
+     to 195% to make sure the extra transparency has not cost the colour. */
+  .glass-card {
+    --glass-filter: blur(30px) saturate(195%);
+    background-color: var(--color-glass-bg);
+    --glass-shadow:
+      0 1px 2px 0 var(--color-glass-shadow-tight),
+      0 8px 32px -8px var(--color-glass-shadow-soft),
+      /* top-edge light catch -- the defining detail */
+      inset 0 1px 0 0 var(--color-glass-specular),
+      /* the soft outer halo that keeps the silhouette from dissolving into a
+         canvas of nearly the same brightness */
+      0 0 0 1px var(--color-glass-halo),
+      /* a faint dark line on the bottom inner edge grounds the pane and stops it
+         looking like it is floating without weight -- and it is what gives the
+         bright top hairline something to read against */
+      inset 0 -1px 0 0 var(--color-glass-shadow-tight);
+  }
+
+  /* --- level 3: .glass-elevated (popovers / modals / sheets) ---------------
+     Stays the densest of the three by design. It sits on top of other glass, so
+     the content behind it is already translucent -- stacking more translucency
+     would destroy text contrast -- and it holds dense form content (inputs,
+     labels, validation text) where legibility matters most. 0.66 light / 0.70
+     dark is still well below the old 0.72 light value, but it is deliberately
+     more than double `.glass`.
+
+     The blur is up from 40px to 48px to fully defuse the glass it is floating
+     over, and the shadow is dramatically larger to convey detachment. */
+  .glass-elevated {
+    --glass-filter: blur(48px) saturate(215%);
+    background-color: var(--color-glass-bg-strong);
+    --glass-shadow:
+      0 2px 6px 0 var(--color-glass-shadow-tight),
+      0 24px 64px -12px var(--color-glass-shadow-soft),
+      0 48px 96px -24px var(--color-glass-shadow-soft),
+      inset 0 1px 0 0 var(--color-glass-specular),
+      0 0 0 1px var(--color-glass-halo),
+      inset 0 -1px 0 0 var(--color-glass-shadow-tight);
+  }
+
+  /* Fallback for engines with no backdrop-filter at all (older Firefox, some
+     embedded webviews).
+     This is the one case where being "transparent" is a bug: blur() is what makes
+     a low-alpha background readable, so without it the alpha has to go up, not
+     stay. Near-opaque surfaces, blur removed. Raised from 0.94 to 0.97 (light) /
+     0.98 (dark) precisely because the normal fills are now much lower-alpha --
+     the safety margin that the blur used to provide has to be made up here.
+
+     The `-webkit-` alternative in the condition is correct to write but the CSS
+     minifier folds it away, since it treats `-webkit-backdrop-filter` as a legacy
+     alias of the standard property, leaving `@supports not (backdrop-filter:
+     blur(1px))`. Practical consequence: Safari only gained unprefixed
+     `backdrop-filter` in 18, so on Safari 15-17 this fallback engages and those
+     users get a flat, fully opaque card. That is a conservative, perfectly
+     legible degradation rather than a broken one, and it is the behaviour the
+     canonical `not (backdrop-filter: blur(1px))` idiom gives. */
+  @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    .glass,
+    .glass-card,
+    .glass-elevated {
+      -webkit-backdrop-filter: none;
+      backdrop-filter: none;
+      background-color: var(--color-glass-fallback);
+    }
+  }
+}
+
+/* The canvas and `.glass-grain` deliberately stay OUTSIDE the layer above.
+   Both set only `background-image`/`background-size`/`background-repeat`,
+   properties no utility in this app competes for, so there is nothing to
+   override and no reason to give up the unlayered precedence. */
+
+/* ==========================================================================
+   BACKGROUND CANVAS
+   --------------------------------------------------------------------------
+   Apply to a fixed, full-viewport, pointer-events-none layer (app.vue already
+   has one).
+
+   A backdrop-filter can only refract what is actually behind it. A near-flat
+   page colour produces flat, lifeless glass no matter how good the blur and
+   saturate() are -- this is the single most common way a glassmorphism ends up
+   looking like a translucent rectangle. So the canvas is built as a SKY SEEN
+   THROUGH CLOUD rather than as a set of accent blobs:
+
+     - seven large, soft masses (light) / five (dark) instead of three tight
+       circles. Every one uses a four-stop ramp with a very gradual falloff and
+       a zero-alpha terminus, so there is no visible edge anywhere -- a cloud
+       has no outline, it just gets thinner.
+     - they overlap, and they vary a lot in size, and several are deliberately
+       positioned off-canvas (negative offsets, or centres past 100%) so the
+       pattern never resolves into a repeating arrangement of blobs.
+     - ONE light direction, top-left, agreed by every layer: the two brightest
+       masses sit on the top-left diagonal, the cool shadowed undersides sit
+       bottom-right, opposite it. Highlights and shading therefore reinforce
+       each other instead of fighting.
+
+   LIGHT: a high-key overcast sky. The luminance floor is deliberately high --
+   measured worst-case across the whole viewport it is L=0.92 -- because text
+   contrast is computed against it. The cloud structure is therefore carried
+   mostly by CHROMA (pale periwinkle, blue, indigo, violet, one warm break)
+   rather than by big dark patches, and that chroma is exactly what the
+   saturate(195%) in the glass filters above amplifies. Darkening the canvas
+   further would look marginally moodier and would put `text-slate-500` under
+   4.5:1; the luminous reading is both the brief and the accessible one.
+
+   DARK: not a flat dark bed but luminous colour suspended in deep space --
+   saturated blue/indigo/violet/teal masses over a near-black wash, with the
+   same top-left light direction. Peak luminance is kept low (L=0.049) because
+   that is what the light text needs to clear 4.5:1.
+
+   `.canvas` is an alias of `.glass-canvas` -- both names work.
+   ========================================================================== */
+.glass-canvas,
+.canvas {
+  background-color: var(--color-canvas-base);
+  background-attachment: fixed;
+  /* Layer 1 is the grain tile, which must repeat; the gradient layers below it
+     must not. `background-repeat`/`background-size` are per-layer comma lists
+     in the same order as `background-image`; surplus trailing values are
+     ignored, so the light rule's eight entries also cover the dark rule's six.
+     See --glass-grain-image above. */
+  background-repeat:
+    repeat,
+    no-repeat,
+    no-repeat,
+    no-repeat,
+    no-repeat,
+    no-repeat,
+    no-repeat,
+    no-repeat;
+  background-size:
+    var(--glass-grain-size),
+    auto,
+    auto,
+    auto,
+    auto,
+    auto,
+    auto,
+    auto;
+}
+
+.glass-canvas {
+  background-image:
+    var(--glass-grain-image),
+    /* the sun-side cumulus crown, running off the top-left corner */
+    radial-gradient(
+      128% 98% at 2% -18%,
+      rgba(255, 255, 255, 0.95) 0%,
+      rgba(255, 255, 255, 0.62) 26%,
+      rgba(251, 253, 255, 0.24) 52%,
+      rgba(247, 250, 255, 0) 76%
+    ),
+    /* the cool shadowed underside, opposite the light, off the bottom-right */
+    radial-gradient(
+      124% 100% at 108% 114%,
+      rgba(223, 228, 250, 0.06) 0%,
+      rgba(229, 233, 251, 0.036) 34%,
+      rgba(234, 236, 252, 0.013) 62%,
+      rgba(238, 239, 253, 0) 84%
+    ),
+    /* a wide blue body, running off the left edge */
+    radial-gradient(
+      100% 78% at -16% 68%,
+      rgba(208, 229, 255, 0.075) 0%,
+      rgba(217, 234, 255, 0.04) 38%,
+      rgba(224, 238, 252, 0.012) 66%,
+      rgba(231, 241, 253, 0) 86%
+    ),
+    /* an indigo mass low and right, its core pushed past the viewport edge so
+       it never lands in the middle of the content column */
+    radial-gradient(
+      82% 66% at 110% 92%,
+      rgba(204, 208, 254, 0.06) 0%,
+      rgba(211, 214, 254, 0.032) 40%,
+      rgba(217, 219, 254, 0.01) 68%,
+      rgba(222, 223, 254, 0) 86%
+    ),
+    /* a violet crown along the top, still catching the same top-left light */
+    radial-gradient(
+      80% 66% at 84% -10%,
+      rgba(230, 221, 255, 0.07) 0%,
+      rgba(235, 228, 255, 0.038) 40%,
+      rgba(239, 234, 255, 0.011) 68%,
+      rgba(242, 238, 255, 0) 86%
+    ),
+    /* one warm break in the deck, low left -- keeps the palette from reading
+       as a single temperature */
+    radial-gradient(
+      74% 60% at 16% 108%,
+      rgba(253, 244, 233, 0.085) 0%,
+      rgba(253, 246, 238, 0.045) 42%,
+      rgba(253, 249, 244, 0.013) 70%,
+      rgba(254, 251, 248, 0) 88%
+    ),
+    /* a second, smaller bright top, so the light direction repeats rather than
+       being stated once */
+    radial-gradient(
+      60% 50% at 44% 32%,
+      rgba(255, 255, 255, 0.46) 0%,
+      rgba(255, 255, 255, 0.2) 44%,
+      rgba(255, 255, 255, 0.045) 72%,
+      rgba(255, 255, 255, 0) 88%
+    ),
+    /* the base wash the masses sit on: brightest at the light source, drifting
+       cooler and fractionally deeper toward the lower right */
+    linear-gradient(168deg, #ffffff 0%, #ffffff 34%, #fbfcff 68%, #f7f9fe 100%);
+}
+
+.dark .glass-canvas,
+.dark .canvas {
+  background-image:
+    var(--glass-grain-image),
+    /* same top-left light source, now as saturated colour in deep space */
+    radial-gradient(
+      115% 88% at 8% -12%,
+      rgba(96, 165, 250, 0.3) 0%,
+      rgba(59, 130, 246, 0.17) 30%,
+      rgba(37, 99, 235, 0.055) 58%,
+      rgba(30, 58, 138, 0) 80%
+    ),
+    /* the violet mass opposite it, running off the bottom-right corner */
+    radial-gradient(
+      130% 105% at 94% 102%,
+      rgba(139, 92, 246, 0.27) 0%,
+      rgba(124, 58, 237, 0.15) 32%,
+      rgba(76, 29, 149, 0.05) 60%,
+      rgba(59, 7, 100, 0) 82%
+    ),
+    /* a teal body running off the left edge */
+    radial-gradient(
+      95% 75% at -6% 58%,
+      rgba(14, 165, 233, 0.22) 0%,
+      rgba(6, 132, 219, 0.115) 38%,
+      rgba(8, 100, 180, 0.035) 66%,
+      rgba(10, 90, 170, 0) 86%
+    ),
+    /* a magenta bloom high right, for temperature variety */
+    radial-gradient(
+      80% 66% at 80% 18%,
+      rgba(217, 70, 239, 0.18) 0%,
+      rgba(192, 38, 211, 0.09) 40%,
+      rgba(150, 20, 180, 0.02) 68%,
+      rgba(140, 20, 170, 0) 86%
+    ),
+    /* a small dense core nearer the middle, so there is something for the
+       blur to actually bend rather than only broad washes */
+    radial-gradient(
+      60% 50% at 40% 40%,
+      rgba(14, 165, 233, 0.15) 0%,
+      rgba(10, 130, 200, 0.07) 44%,
+      rgba(10, 110, 180, 0.015) 72%,
+      rgba(10, 100, 170, 0) 88%
+    ),
+    /* the deep-space bed: not flat black, but not a flat slab either */
+    linear-gradient(168deg, #0b1424 0%, #070d1a 46%, #0a0e1e 74%, #0f0a1c 100%);
+}
+
+/* Opt-in grain for individual glass surfaces, for a component that wants the
+   material to read as frosted rather than polished. Applied as a background
+   layer, so -- exactly as on the canvas -- it can never sit on top of, or
+   degrade the contrast of, the element's own text. */
+.glass-grain {
+  background-image: var(--glass-grain-image);
+  background-size: var(--glass-grain-size);
+  background-repeat: repeat;
+}
+
+/* ==========================================================================
+   MOTION + THEME TRANSITION HELPERS
+   ========================================================================== */
 
 /* 2026 Glassmorphism and theme transition helpers */
 .theme-transition * {
-  transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
+  transition:
+    background-color 0.3s ease,
+    border-color 0.3s ease,
+    color 0.3s ease;
 }
 
 .animate-spin-slow {
@@ -31,16 +599,30 @@ body {
   }
 }
 
-.glass-card {
-  background: rgba(255, 255, 255, 0.45);
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
-  border: 1px solid rgba(255, 255, 255, 0.5);
+/* Respect the OS-level motion preference. The spin is decorative and entirely
+   redundant, so it is stopped outright; the colour/theme transitions are
+   collapsed to an instant change rather than removed, because removing a
+   transition property outright can change which declaration wins the cascade.
+   The grain needs no entry here: it is a static texture, not an animation. */
+@media (prefers-reduced-motion: reduce) {
+  .animate-spin-slow {
+    animation: none;
+  }
+
+  .theme-transition *,
+  .glass,
+  .glass-card,
+  .glass-elevated,
+  body {
+    transition-duration: 0.01ms !important;
+  }
 }
 
-.dark .glass-card {
-  background: rgba(15, 23, 42, 0.4);
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+/* Users who ask for more contrast get none of the decorative texture. Setting
+   the token to `none` removes the grain from the canvas layer list and from
+   `.glass-grain` in one place, since both reference the same variable. */
+@media (prefers-contrast: more) {
+  :root {
+    --glass-grain-image: none;
+  }
 }

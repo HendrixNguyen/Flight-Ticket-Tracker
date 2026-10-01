@@ -1,31 +1,36 @@
 <template>
   <div class="w-full">
-    <!-- Unsearched State -->
-    <div v-if="!searched" class="flex flex-col items-center justify-center py-20 text-center glass-card rounded-3xl p-8 border border-white/40 dark:border-white/5">
-      <div class="w-24 h-24 bg-blue-50 dark:bg-blue-950/40 rounded-full flex items-center justify-center mb-6 border border-blue-100/50 dark:border-blue-900/30">
-        <Map class="w-10 h-10 text-blue-500 dark:text-blue-400" />
+    <!-- Unsearched State. `glass-card` with no competing border/shadow utility:
+         the class already carries the halo that keeps a near-white pane
+         separable from a near-white canvas. -->
+    <div v-if="!searched" class="glass-card glass-grain flex flex-col items-center justify-center py-20 text-center rounded-3xl p-8">
+      <div class="glass medallion w-24 h-24 rounded-full flex items-center justify-center mb-6">
+        <Map class="w-10 h-10 text-blue-700 dark:text-blue-300" />
       </div>
       <h3 class="text-2xl font-black text-slate-900 dark:text-slate-100 mb-2">Where to next?</h3>
-      <p class="text-slate-500 dark:text-slate-400 max-w-md font-medium text-sm">Enter your origin and destination above to start crawling the best flight deals.</p>
+      <p class="text-slate-600 dark:text-slate-300 max-w-md font-medium text-sm">Enter your origin and destination above to start crawling the best flight deals.</p>
     </div>
 
     <!-- Empty State -->
-    <div v-else-if="flights.length === 0" class="flex flex-col items-center justify-center py-20 text-center glass-card rounded-3xl p-8 border border-white/40 dark:border-white/5">
-       <div class="w-24 h-24 bg-slate-50 dark:bg-slate-900/60 rounded-full flex items-center justify-center mb-6 border border-slate-200/50 dark:border-slate-800">
-        <SearchX class="w-10 h-10 text-slate-400 dark:text-slate-500" />
+    <div v-else-if="flights.length === 0" class="glass-card glass-grain flex flex-col items-center justify-center py-20 text-center rounded-3xl p-8">
+       <div class="glass medallion-muted w-24 h-24 rounded-full flex items-center justify-center mb-6">
+        <SearchX class="w-10 h-10 text-slate-600 dark:text-slate-300" />
       </div>
       <h3 class="text-2xl font-black text-slate-900 dark:text-slate-100 mb-2">No flights found</h3>
-      <p class="text-slate-500 dark:text-slate-400 font-medium text-sm">We couldn't find any flights matching your criteria. Try adjusting your filters.</p>
+      <p class="text-slate-600 dark:text-slate-300 font-medium text-sm">We couldn't find any flights matching your criteria. Try adjusting your filters.</p>
     </div>
 
     <!-- Listings -->
     <div v-else class="space-y-4">
       <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
-        <p class="text-sm font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider" aria-live="polite">
+        <!-- Carries aria-live, so it is real content and not decoration: it is
+             held at slate-600/slate-300, the first steps that clear 4.5:1 in
+             both modes. -->
+        <p class="text-sm font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider" aria-live="polite">
           Showing {{ flights.length }} of {{ total }} flights<span v-if="flights.length < total"> — some are hidden by your filters</span>
         </p>
         <div class="flex items-center gap-3">
-          <span v-if="cached" class="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+          <span v-if="cached" class="glass cached-badge text-[10px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300 px-2.5 py-1 rounded-full">
             Cached prices
           </span>
           <button
@@ -33,7 +38,7 @@
             type="button"
             @click="emit('refresh')"
             :disabled="refreshing"
-            class="inline-flex items-center gap-1.5 rounded-lg border border-blue-100/60 dark:border-blue-900/30 bg-blue-50 dark:bg-blue-950/40 px-3 py-1.5 text-xs font-bold text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/40 transition-colors cursor-pointer focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+            class="refresh-btn glass inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-bold text-blue-700 dark:text-blue-300 hover:brightness-105 active:brightness-95 transition-[filter] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <RefreshCw class="w-3.5 h-3.5" :class="{ 'animate-spin': refreshing }" aria-hidden="true" />
             {{ refreshing ? 'Refreshing' : 'Refresh prices' }}
@@ -76,6 +81,44 @@ const emit = defineEmits<{
 </script>
 
 <style scoped>
+/* These are large empty regions. The grain keeps them reading as frosted
+   atmosphere rather than polished plastic, and the radius matches the cards so
+   the whole page shares one corner language. */
+
+/* The medallions are `.glass` with a scoped accent wash on top. Inline `bg-*`
+   utilities would win over the class and take the border and blur with them,
+   leaving a flat disc. */
+.medallion {
+  background-color: rgba(219, 231, 254, 0.42);
+  border-color: rgba(255, 255, 255, 0.5);
+}
+.dark .medallion {
+  background-color: rgba(30, 58, 138, 0.4);
+  border-color: rgba(255, 255, 255, 0.16);
+}
+
+.medallion-muted {
+  background-color: rgba(226, 232, 240, 0.34);
+}
+.dark .medallion-muted {
+  background-color: rgba(30, 41, 59, 0.44);
+}
+
+.cached-badge {
+  border-color: rgba(255, 255, 255, 0.45);
+}
+
+/* Ring rather than a coloured outline: the button sits on glass, and a solid
+   outline on a translucent fill reads as a sticker. `outline-offset` pulls the
+   ring off the glass fill so it stays visible against the cloud behind. */
+.refresh-btn:focus-visible {
+  outline: 2px solid var(--color-blue-600);
+  outline-offset: 2px;
+}
+.dark .refresh-btn:focus-visible {
+  outline-color: var(--color-blue-300);
+}
+
 .list-move,
 .list-enter-active,
 .list-leave-active {
@@ -88,7 +131,24 @@ const emit = defineEmits<{
   transform: translateX(30px);
 }
 
+/* Kept: absolute positioning on the leaving node is what stops the remaining
+   cards from reflowing up into its slot while it animates out. It must not be
+   removed to "simplify" the transition, or filtering will jump. */
 .list-leave-active {
   position: absolute;
+}
+
+/* Reduced motion keeps the fade -- it is the part that communicates the change
+   -- and drops the horizontal slide. */
+@media (prefers-reduced-motion: reduce) {
+  .list-move,
+  .list-enter-active,
+  .list-leave-active {
+    transition-duration: 0.15s;
+  }
+  .list-enter-from,
+  .list-leave-to {
+    transform: none;
+  }
 }
 </style>

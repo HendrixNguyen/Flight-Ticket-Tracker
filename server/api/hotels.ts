@@ -11,7 +11,7 @@ const MOCK_HOTELS: Hotel[] = [
     rating: 4.6,
     reviewsCount: 3420,
     pricePerNight: 289,
-    currency: 'USD',
+    currency: DEFAULT_CURRENCY,
     thumbnail: 'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=600&auto=format&fit=crop&q=80',
     images: [
       'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=600&auto=format&fit=crop&q=80',
@@ -29,7 +29,7 @@ const MOCK_HOTELS: Hotel[] = [
     rating: 4.4,
     reviewsCount: 2840,
     pricePerNight: 350,
-    currency: 'USD',
+    currency: DEFAULT_CURRENCY,
     thumbnail: 'https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?w=600&auto=format&fit=crop&q=80',
     images: [
       'https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?w=600&auto=format&fit=crop&q=80',
@@ -47,7 +47,7 @@ const MOCK_HOTELS: Hotel[] = [
     rating: 4.8,
     reviewsCount: 1980,
     pricePerNight: 580,
-    currency: 'USD',
+    currency: DEFAULT_CURRENCY,
     thumbnail: 'https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=600&auto=format&fit=crop&q=80',
     images: [
       'https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=600&auto=format&fit=crop&q=80',
@@ -65,7 +65,7 @@ const MOCK_HOTELS: Hotel[] = [
     rating: 4.9,
     reviewsCount: 1540,
     pricePerNight: 720,
-    currency: 'USD',
+    currency: DEFAULT_CURRENCY,
     thumbnail: 'https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?w=600&auto=format&fit=crop&q=80',
     images: [
       'https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?w=600&auto=format&fit=crop&q=80',
@@ -83,7 +83,7 @@ const MOCK_HOTELS: Hotel[] = [
     rating: 4.5,
     reviewsCount: 9850,
     pricePerNight: 169,
-    currency: 'USD',
+    currency: DEFAULT_CURRENCY,
     thumbnail: 'https://images.unsplash.com/photo-1582719508461-905c673771fd?w=600&auto=format&fit=crop&q=80',
     images: [
       'https://images.unsplash.com/photo-1582719508461-905c673771fd?w=600&auto=format&fit=crop&q=80',
@@ -101,7 +101,7 @@ const MOCK_HOTELS: Hotel[] = [
     rating: 4.7,
     reviewsCount: 12500,
     pricePerNight: 450,
-    currency: 'USD',
+    currency: DEFAULT_CURRENCY,
     thumbnail: 'https://images.unsplash.com/photo-1564507592333-c60657eea523?w=600&auto=format&fit=crop&q=80',
     images: [
       'https://images.unsplash.com/photo-1564507592333-c60657eea523?w=600&auto=format&fit=crop&q=80',
@@ -140,9 +140,12 @@ export default defineEventHandler(async (event) => {
     });
   }
 
+  // SerpApi performs the conversion, so prices are real quoted rates.
+  const currency = resolveCurrency(query.currency);
+
   // Keyed on every pricing-relevant parameter so a cached result can never be
-  // served for different dates, occupancy or room count.
-  const key = cacheKey('hotels', { destination, checkIn, checkOut, adults, rooms });
+  // served for different dates, occupancy, room count or currency.
+  const key = cacheKey('hotels', { destination, checkIn, checkOut, adults, rooms, currency });
 
   // ?refresh=1 forces a live lookup for users who suspect stale rates.
   if (query.refresh !== '1') {
@@ -195,7 +198,7 @@ export default defineEventHandler(async (event) => {
     serpApiUrl.searchParams.append('check_out_date', checkOut);
     serpApiUrl.searchParams.append('adults', adults.toString());
     serpApiUrl.searchParams.append('hl', 'en');
-    serpApiUrl.searchParams.append('currency', 'USD');
+    serpApiUrl.searchParams.append('currency', currency);
     serpApiUrl.searchParams.append('api_key', config.serpApiKey);
 
     const response: any = await $fetch(serpApiUrl.toString());
@@ -239,7 +242,7 @@ export default defineEventHandler(async (event) => {
         reviewsCount: item.reviews || undefined,
         pricePerNight: typeof pricePerNight === 'string' ? parseFloat(pricePerNight.replace(/[^0-9.]/g, '')) : pricePerNight,
         totalPrice: typeof totalPrice === 'string' ? parseFloat(totalPrice.replace(/[^0-9.]/g, '')) : totalPrice,
-        currency: 'USD',
+        currency: currency,
         thumbnail: item.thumbnail || images[0] || 'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=600&auto=format&fit=crop&q=80',
         images: images.length > 0 ? images : undefined,
         amenities: item.amenities || [],

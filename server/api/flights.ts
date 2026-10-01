@@ -27,9 +27,14 @@ export default defineEventHandler(async (event) => {
   }
 
   const returnDate = query.returnDate as string;
+  // SerpApi performs the conversion, so prices are real quoted fares rather
+  // than amounts this app converted with its own rate table.
+  const currency = resolveCurrency(query.currency);
+
   // Keyed on the full search so a cached round-trip never leaks into a
-  // one-way search or a different date.
-  const key = cacheKey('flights', { from, to, date, returnDate });
+  // one-way search or a different date. Currency is part of the key because
+  // the same route returns different amounts per currency.
+  const key = cacheKey('flights', { from, to, date, returnDate, currency });
 
   // ?refresh=1 forces a live lookup for users who suspect stale prices.
   if (query.refresh !== '1') {
@@ -62,7 +67,7 @@ export default defineEventHandler(async (event) => {
     } else {
       serpApiUrl.searchParams.append('type', '2'); // One-way flight
     }
-    serpApiUrl.searchParams.append('currency', 'USD');
+    serpApiUrl.searchParams.append('currency', currency);
     serpApiUrl.searchParams.append('hl', 'en');
     serpApiUrl.searchParams.append('api_key', config.serpApiKey);
 
@@ -105,7 +110,7 @@ export default defineEventHandler(async (event) => {
          departureAirport: firstLeg.departure_airport.id,
          arrivalAirport: lastLeg.arrival_airport.id,
          price: item.price || 0,
-         currency: 'USD',
+         currency: currency,
          durationMinutes: durationMinutes,
          stops: flightLegs.length - 1,
        };
