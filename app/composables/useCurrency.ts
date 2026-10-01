@@ -56,15 +56,25 @@ export const useCurrency = () => {
 
   const symbol = computed(() => currency.value.symbol);
 
+  // Only CHF uses a word rather than a glyph; glyphs read better set tight.
+  const isWordSymbol = computed(() => /^[A-Za-z]+$/.test(currency.value.symbol));
+
+  /** Alphabetic codes like CHF read as a word and need a space before the
+   *  amount ("CHF 1,234.56"); symbol glyphs sit tight against it ("$1,234.56"). */
+  const joinSymbol = (value: number): string => {
+    const formatted = value.toLocaleString('en-US');
+    return isWordSymbol.value ? `${symbol.value} ${formatted}` : `${symbol.value}${formatted}`;
+  };
+
   /** Formats an amount with the active currency. Zero-decimal currencies
    *  (JPY, VND, KRW) get no decimal places, where cents are meaningless. */
   const formatAmount = (amount: number): string => {
-    if (!Number.isFinite(amount)) return `${symbol.value}0`;
+    if (!Number.isFinite(amount)) return joinSymbol(0);
 
     const zeroDecimal = ['JPY', 'VND', 'KRW'].includes(currency.value.code);
     const value = zeroDecimal ? Math.round(amount) : amount;
 
-    return `${symbol.value}${value.toLocaleString('en-US')}`;
+    return joinSymbol(value);
   };
 
   const setCurrency = (code: string) => {
