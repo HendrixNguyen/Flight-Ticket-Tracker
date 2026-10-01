@@ -25,3 +25,6 @@ logs
 
 # Brainstorming Visual Companion
 .superpowers/
+
+# Throwaway SerpApi probe scripts (one-off investigation, not source)
+scratch/probe-*.js
