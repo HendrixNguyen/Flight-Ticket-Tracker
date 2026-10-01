@@ -99,6 +99,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   (e: 'update:modelValue', value: string): void;
+  (e: 'change', value: string): void;
 }>();
 
 const isOpen = ref(false);
@@ -180,7 +181,9 @@ const selectDay = (day: number) => {
   const monthStr = String(selectedDate.getMonth() + 1).padStart(2, '0');
   const dayStr = String(selectedDate.getDate()).padStart(2, '0');
   
-  emit('update:modelValue', `${yearStr}-${monthStr}-${dayStr}`);
+  const value = `${yearStr}-${monthStr}-${dayStr}`;
+  emit('update:modelValue', value);
+  emit('change', value);
   isOpen.value = false;
 };
 

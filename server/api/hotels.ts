@@ -130,6 +130,30 @@ export default defineEventHandler(async (event) => {
     } as HotelApiResponse;
   }
 
+  const limit = RATE_LIMIT.hotels;
+  const gate = rateLimit('hotels', clientIp(event), limit.limit, limit.windowMs);
+  if (!gate.allowed) {
+    setHeader(event, 'Retry-After', String(gate.retryAfterSeconds));
+    throw createError({
+      statusCode: 429,
+      statusMessage: 'Too many hotel searches. Please wait a moment before searching again.',
+    });
+  }
+
+  // Keyed on every pricing-relevant parameter so a cached result can never be
+  // served for different dates, occupancy or room count.
+  const key = cacheKey('hotels', { destination, checkIn, checkOut, adults, rooms });
+
+  // ?refresh=1 forces a live lookup for users who suspect stale rates.
+  if (query.refresh !== '1') {
+    const cached = cacheGet<HotelApiResponse>(key);
+    if (cached) {
+      setHeader(event, 'X-Cache', 'HIT');
+      return cached;
+    }
+  }
+  setHeader(event, 'X-Cache', 'MISS');
+
   // Handle mock fallback if SerpApi key is missing
   if (!config.serpApiKey) {
     console.warn('SerpApi Key is missing. Active fallback mock hotel data.');
@@ -203,7 +227,7 @@ export default defineEventHandler(async (event) => {
       }
 
       return {
-        id: item.property_token || item.kgmid || `hotel-${Math.random().toString(36).substring(2, 11)}`,
+        id: item.property_token || item.kgmid || slugify(item.name, item.address),
         name: item.name || 'Unnamed Luxury Hotel',
         description: item.description || 'Stunning property with premium services and elegant local access.',
         location: item.address || 'Central City Destination',
@@ -223,10 +247,12 @@ export default defineEventHandler(async (event) => {
       };
     });
 
-    return {
+    const result = {
       success: true,
       data: mappedHotels,
     } as HotelApiResponse;
+    cacheSet(key, result, CACHE_TTL.hotels);
+    return result;
   } catch (error: any) {
     console.error('Error fetching hotel data from SerpApi:', error);
     

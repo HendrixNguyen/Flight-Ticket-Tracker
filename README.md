@@ -52,6 +52,45 @@ bun run preview # serves the production build locally
 Never pass this as a Docker build argument - build args are baked into image layers. Set it as a
 runtime environment variable.
 
+## Caching and rate limits
+
+SerpApi bills per request, so identical searches are cached in memory to avoid paying twice for the
+same data. Results are cached per endpoint, keyed on the full set of search parameters:
+
+| Endpoint | Cache lifetime | Limit per IP |
+|---|---|---|
+| `/api/locations` | 24 hours | 120/min |
+| `/api/hotels-autocomplete` | 24 hours | 120/min |
+| `/api/flights` | 5 minutes | 20/min |
+| `/api/hotels` | 15 minutes | 20/min |
+
+Autocomplete results (airport and hotel names) change rarely, so they are cached for a day. Prices
+move constantly, so flight and hotel results expire quickly rather than showing stale fares. Only
+successful responses are cached - an upstream failure is never cached.
+
+Use **Refresh prices** / **Refresh rates** on the results page, or call the API with `?refresh=1`,
+to force a live lookup instead of a cached one. Cached results are labelled as such in the UI.
+
+Rate limits protect your SerpApi quota from scraping. Exceeding one returns `429` with a
+`Retry-After` header.
+
+Check the hit rate at any time:
+
+```bash
+curl -s https://your-domain/api/cache-stats
+```
+
+```json
+{
+  "status": "ok",
+  "cache": { "hits": 42, "misses": 8, "entries": 40, "hitRate": 84, "callsSaved": 42 },
+  "rateLimit": { "trackedClients": 3, "blockedAttempts": 0 }
+}
+```
+
+Note: the cache is per-process, so it resets on redeploy and is not shared if you scale to multiple
+replicas. Move to shared storage (Redis or a database) if you scale out.
+
 ## Deploying to Dokploy
 
 The app is server-rendered with Nitro API routes, so it must run as a Node server. It cannot be

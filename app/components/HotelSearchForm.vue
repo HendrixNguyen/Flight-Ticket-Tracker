@@ -5,76 +5,29 @@
     <form @submit.prevent="submitSearch" class="flex flex-col lg:flex-row gap-4 w-full items-end relative z-30">
       
       <!-- Destination Input with Real-time Image Suggestion -->
-      <div ref="destinationContainer" class="flex-[1.2] w-full relative">
-        <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1" for="destination">Destination</label>
-        <div class="relative">
-          <MapPin class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5 animate-pulse" />
-          <input 
-            id="destination"
-            v-model="destinationSearchText" 
-            type="text" 
-            required
-            autocomplete="off"
-            placeholder="Search hotels, resorts, or cities (e.g. San Francisco)" 
-            class="w-full pl-10 pr-12 py-3 border border-gray-300 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-900/60 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow outline-none dark:text-slate-100 font-medium"
-            @input="handleDestinationInput"
-            @focus="handleDestinationFocus"
-          >
-          <button 
-            type="button" 
+      <LocationCombobox
+        v-model="form.destination"
+        label="Destination"
+        placeholder="Search hotels, resorts, or cities (e.g. San Francisco)"
+        endpoint="/api/hotels-autocomplete"
+        :popular-locations="POPULAR_DESTINATIONS"
+        class="flex-[1.2]"
+        @update:model-value="onDestinationChanged"
+        @select="onDestinationSelected"
+      >
+        <template #trailing>
+          <button
+            type="button"
             @click="requestLocation"
-            class="absolute right-3 top-1/2 -translate-y-1/2 text-blue-500 hover:text-blue-700 transition-colors cursor-pointer"
+            class="text-blue-500 hover:text-blue-700 transition-colors cursor-pointer"
+            aria-label="Use my current location as destination"
             title="Use my location"
           >
             <Loader2 v-if="isLocating" class="w-5 h-5 animate-spin" />
             <Crosshair v-else class="w-5 h-5" />
           </button>
-        </div>
-
-        <!-- Real-time Image/Thumbnail Suggestion Dropdown -->
-        <transition name="fade">
-          <div 
-            v-if="showSuggestionsDropdown" 
-            class="absolute z-50 left-0 right-0 mt-2 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md rounded-2xl border border-gray-100 dark:border-slate-800/85 shadow-xl shadow-gray-200/50 dark:shadow-black/50 max-h-72 overflow-y-auto py-2 outline-none transition-all"
-          >
-            <div v-if="isSuggestionsLoading" class="px-4 py-3 flex items-center gap-3 text-sm text-gray-500">
-              <Loader2 class="w-4 h-4 animate-spin text-blue-500" />
-              <span>Finding matching stays...</span>
-            </div>
-            
-            <div v-else-if="suggestions.length === 0" class="px-4 py-3 text-sm text-gray-500">
-              No matching properties or cities. Type to discover.
-            </div>
-            
-            <ul v-else class="divide-y divide-gray-50 dark:divide-slate-800/50">
-              <li 
-                v-for="suggestion in suggestions" 
-                :key="suggestion.id"
-                @click="selectSuggestion(suggestion)"
-                class="px-4 py-3 hover:bg-blue-50 dark:hover:bg-slate-800/60 cursor-pointer transition-colors duration-150 flex items-center gap-3"
-              >
-                <!-- Display hotel suggestion thumbnail if available -->
-                <div v-if="suggestion.thumbnail" class="w-12 h-12 rounded-lg overflow-hidden shrink-0 border border-slate-200/50 dark:border-slate-700/50 shadow-sm">
-                  <img :src="suggestion.thumbnail" class="w-full h-full object-cover" alt="Hotel preview" />
-                </div>
-                <!-- Default icons for fallback -->
-                <div v-else class="w-12 h-12 bg-slate-100 dark:bg-slate-800/60 rounded-lg flex items-center justify-center shrink-0 border border-slate-200/50 dark:border-slate-700/50">
-                  <Building v-if="suggestion.type === 'hotel'" class="w-5 h-5 text-blue-500 dark:text-blue-400" />
-                  <MapPin v-else class="w-5 h-5 text-gray-500 dark:text-slate-400" />
-                </div>
-
-                <div class="flex-grow min-w-0">
-                  <div class="font-bold text-sm text-gray-900 dark:text-slate-100 truncate flex items-center gap-1.5">
-                    {{ suggestion.name }}
-                    <span v-if="suggestion.type === 'hotel'" class="text-[9px] bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 border border-emerald-100/50 dark:border-emerald-900/30 px-1.5 py-0.5 rounded uppercase font-black tracking-wide shrink-0">Hotel</span>
-                  </div>
-                  <div class="text-xs text-gray-500 dark:text-slate-400 truncate mt-0.5 font-medium">{{ suggestion.description }}</div>
-                </div>
-              </li>
-            </ul>
-          </div>
-        </transition>
-      </div>
+        </template>
+      </LocationCombobox>
 
       <!-- Stay Dates (Check-in & Check-out Calendar Range Picker) -->
       <div class="flex-[1.5] w-full relative">
@@ -83,6 +36,7 @@
           v-model:startDate="form.checkIn"
           v-model:endDate="form.checkOut"
           :minDate="todayStr"
+          @change="notifyChange"
         />
       </div>
 
@@ -188,15 +142,20 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue';
-import { MapPin, Search, Crosshair, Loader2, Building, Users, ChevronDown } from 'lucide-vue-next';
+import { Search, Crosshair, Loader2, Users, ChevronDown } from 'lucide-vue-next';
 import type { HotelSearchQuery, HotelAutocompleteSuggestion } from '~/types';
 
 const emit = defineEmits<{
   (e: 'search', query: HotelSearchQuery): void;
+  (e: 'change', query: HotelSearchQuery): void;
+}>();
+
+const props = defineProps<{
+  /** Optional initial state, used to hydrate the form from a shareable URL. */
+  initial?: Partial<HotelSearchQuery>;
 }>();
 
 // Element refs
-const destinationContainer = ref<HTMLElement | null>(null);
 const guestSelectorContainer = ref<HTMLElement | null>(null);
 
 // Form default setup (defaults to tomorrow for 3 nights)
@@ -213,23 +172,23 @@ const defaultCheckOutDate = (): string => {
 };
 
 const form = ref<HotelSearchQuery>({
-  destination: '',
-  destinationName: '',
-  checkIn: defaultCheckInDate(),
-  checkOut: defaultCheckOutDate(),
-  adults: 2,
-  rooms: 1,
+  destination: props.initial?.destination || '',
+  destinationName: props.initial?.destinationName || '',
+  checkIn: props.initial?.checkIn || defaultCheckInDate(),
+  checkOut: props.initial?.checkOut || defaultCheckOutDate(),
+  adults: props.initial?.adults || 2,
+  rooms: props.initial?.rooms || 1,
 });
+
+const notifyChange = () => {
+  emit('change', { ...form.value });
+};
 
 const todayStr = computed(() => {
   return new Date().toISOString().split('T')[0];
 });
 
 // Autocomplete and selection states
-const destinationSearchText = ref('');
-const suggestions = ref<HotelAutocompleteSuggestion[]>([]);
-const isSuggestionsLoading = ref(false);
-const showSuggestionsDropdown = ref(false);
 const isLocating = ref(false);
 const showGuestDropdown = ref(false);
 
@@ -245,68 +204,41 @@ const POPULAR_DESTINATIONS: HotelAutocompleteSuggestion[] = [
 // Guest Panel actions
 const toggleGuestDropdown = () => {
   showGuestDropdown.value = !showGuestDropdown.value;
-  showSuggestionsDropdown.value = false;
 };
 
 const incrementAdults = () => {
   if (form.value.adults < 10) form.value.adults++;
+  notifyChange();
 };
 
 const decrementAdults = () => {
   if (form.value.adults > 1) form.value.adults--;
+  notifyChange();
 };
 
 const incrementRooms = () => {
   if (form.value.rooms < 5) form.value.rooms++;
+  notifyChange();
 };
 
 const decrementRooms = () => {
   if (form.value.rooms > 1) form.value.rooms--;
+  notifyChange();
 };
 
-// Destination Autocomplete triggers
-const handleDestinationFocus = () => {
-  showSuggestionsDropdown.value = true;
-  showGuestDropdown.value = false;
-  if (!destinationSearchText.value.trim() && suggestions.value.length === 0) {
-    suggestions.value = POPULAR_DESTINATIONS;
-  }
-};
-
-let suggestionsDebounceTimeout: any = null;
-const handleDestinationInput = () => {
-  showSuggestionsDropdown.value = true;
-  form.value.destination = destinationSearchText.value;
-
-  if (suggestionsDebounceTimeout) clearTimeout(suggestionsDebounceTimeout);
-
-  if (!destinationSearchText.value.trim()) {
-    suggestions.value = POPULAR_DESTINATIONS;
-    return;
-  }
-
-  isSuggestionsLoading.value = true;
-  suggestionsDebounceTimeout = setTimeout(async () => {
-    try {
-      const response = await $fetch<{ success: boolean; data: HotelAutocompleteSuggestion[] }>('/api/hotels-autocomplete', {
-        params: { q: destinationSearchText.value }
-      });
-      if (response && response.success) {
-        suggestions.value = response.data;
-      }
-    } catch (err) {
-      console.error('Failed to autocomplete destination:', err);
-    } finally {
-      isSuggestionsLoading.value = false;
-    }
-  }, 300);
-};
-
-const selectSuggestion = (suggestion: HotelAutocompleteSuggestion) => {
-  form.value.destination = suggestion.propertyToken || suggestion.name;
+// Destination selection. Hotels resolve to a property token when available so
+// the search targets the specific property rather than the whole city.
+const onDestinationSelected = (suggestion: HotelAutocompleteSuggestion) => {
+  const token = 'propertyToken' in suggestion ? suggestion.propertyToken : undefined;
+  form.value.destination = token || suggestion.name;
   form.value.destinationName = suggestion.name;
-  destinationSearchText.value = suggestion.name;
-  showSuggestionsDropdown.value = false;
+  notifyChange();
+};
+
+// v-model fires before @select, so keep the URL in step with the typed value
+// and let the select handler refine it once a suggestion is chosen.
+const onDestinationChanged = () => {
+  notifyChange();
 };
 
 // Device geolocation trigger
@@ -330,29 +262,23 @@ const requestLocation = () => {
         }
         
         if (locationName) {
-          destinationSearchText.value = locationName;
-          
-          isSuggestionsLoading.value = true;
           const searchRes = await $fetch<{ success: boolean; data: HotelAutocompleteSuggestion[] }>('/api/hotels-autocomplete', {
             params: { q: locationName }
           });
-          
-          if (searchRes && searchRes.success && searchRes.data.length > 0) {
-            const first = searchRes.data[0];
-            selectSuggestion(first);
+
+          if (searchRes?.success && searchRes.data.length > 0) {
+            onDestinationSelected(searchRes.data[0]);
           } else {
             form.value.destination = locationName;
             form.value.destinationName = locationName;
           }
         } else {
           const fallbackVal = `${latitude.toFixed(2)}, ${longitude.toFixed(2)}`;
-          destinationSearchText.value = fallbackVal;
           form.value.destination = fallbackVal;
           form.value.destinationName = fallbackVal;
         }
       } catch (err) {
         console.error('Failed to reverse geocode device location:', err);
-        destinationSearchText.value = 'My Current Location';
         form.value.destination = 'My Current Location';
         form.value.destinationName = 'My Current Location';
       } finally {
@@ -367,11 +293,8 @@ const requestLocation = () => {
   );
 };
 
-// Outside click handlers
+// Outside click handler (guest selector only; the combobox handles its own)
 const handleClickOutside = (event: MouseEvent) => {
-  if (destinationContainer.value && !destinationContainer.value.contains(event.target as Node)) {
-    showSuggestionsDropdown.value = false;
-  }
   if (guestSelectorContainer.value && !guestSelectorContainer.value.contains(event.target as Node)) {
     showGuestDropdown.value = false;
   }
@@ -383,7 +306,6 @@ onMounted(() => {
 
 onUnmounted(() => {
   document.removeEventListener('click', handleClickOutside);
-  if (suggestionsDebounceTimeout) clearTimeout(suggestionsDebounceTimeout);
 });
 
 const submitSearch = () => {

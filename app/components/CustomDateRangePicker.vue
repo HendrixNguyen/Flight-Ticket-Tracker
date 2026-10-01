@@ -121,6 +121,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   (e: 'update:startDate', value: string): void;
   (e: 'update:endDate', value: string): void;
+  (e: 'change'): void;
 }>();
 
 const isOpen = ref(false);
@@ -251,6 +252,8 @@ const selectDay = (day: number) => {
     emit('update:endDate', dateString);
     isOpen.value = false;
   }
+
+  emit('change');
 };
 
 const handleClickOutside = (event: MouseEvent) => {

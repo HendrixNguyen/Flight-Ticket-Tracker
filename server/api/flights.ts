@@ -16,6 +16,31 @@ export default defineEventHandler(async (event) => {
     } as FlightApiResponse;
   }
 
+  const limit = RATE_LIMIT.flights;
+  const gate = rateLimit('flights', clientIp(event), limit.limit, limit.windowMs);
+  if (!gate.allowed) {
+    setHeader(event, 'Retry-After', String(gate.retryAfterSeconds));
+    throw createError({
+      statusCode: 429,
+      statusMessage: 'Too many flight searches. Please wait a moment before searching again.',
+    });
+  }
+
+  const returnDate = query.returnDate as string;
+  // Keyed on the full search so a cached round-trip never leaks into a
+  // one-way search or a different date.
+  const key = cacheKey('flights', { from, to, date, returnDate });
+
+  // ?refresh=1 forces a live lookup for users who suspect stale prices.
+  if (query.refresh !== '1') {
+    const cached = cacheGet<FlightApiResponse>(key);
+    if (cached) {
+      setHeader(event, 'X-Cache', 'HIT');
+      return cached;
+    }
+  }
+  setHeader(event, 'X-Cache', 'MISS');
+
   if (!config.serpApiKey) {
     return {
       success: false,
@@ -31,7 +56,6 @@ export default defineEventHandler(async (event) => {
     serpApiUrl.searchParams.append('arrival_id', to.startsWith('/m/') ? to : to.toUpperCase());
     serpApiUrl.searchParams.append('outbound_date', date);
 
-    const returnDate = query.returnDate as string;
     if (returnDate && returnDate !== 'undefined' && returnDate.trim() !== '') {
       serpApiUrl.searchParams.append('type', '1'); // Round-trip flight
       serpApiUrl.searchParams.append('return_date', returnDate);
@@ -74,7 +98,7 @@ export default defineEventHandler(async (event) => {
          id: item.flights.map((f:any) => f.flight_number).join('-'),
          airline: firstLeg.airline,
          airlineLogo: firstLeg.airline_logo || item.airline_logo || undefined,
-         airplane: firstLeg.airplane || 'Boeing 787-9 Dreamliner',
+         airplane: firstLeg.airplane || undefined,
          flightNumber: firstLeg.flight_number,
          departureTime: firstLeg.departure_airport.time,
          arrivalTime: lastLeg.arrival_airport.time,
@@ -87,10 +111,12 @@ export default defineEventHandler(async (event) => {
        };
     });
 
-    return {
+    const result = {
       success: true,
       data: mappedFlights,
     } as FlightApiResponse;
+    cacheSet(key, result, CACHE_TTL.flights);
+    return result;
   } catch (error: any) {
     console.error('Error fetching from SerpApi:', error);
     return {

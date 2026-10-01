@@ -3,7 +3,11 @@
     
     <!-- Search Card Form Section -->
     <div class="bg-white/40 dark:bg-slate-900/40 backdrop-blur-xl p-6 rounded-3xl shadow-sm border border-white/40 dark:border-white/10 mb-8 transform hover:shadow-md transition-all relative z-20">
-      <HotelSearchForm @search="handleHotelSearch" />
+      <HotelSearchForm
+          :initial="formInitial"
+          @search="handleHotelSearch"
+          @change="syncUrl"
+        />
     </div>
 
     <!-- Active Search Grid -->
@@ -11,12 +15,19 @@
       
       <!-- Sidebar Filters -->
       <aside class="w-full lg:w-1/4">
-        <HotelFilterSidebar 
-          :active-filters="hotelFilters"
-          @update:filters="updateHotelFilters"
-          @update:sort="updateHotelSort"
-        />
-      </aside>
+          <ActiveFilterChips :chips="activeChips" @remove="removeFilter" />
+          <FilterSheet
+            title="Filter stays"
+            :count="activeChips.length"
+            :result-count="filteredAndSortedHotels.length"
+          >
+            <HotelFilterSidebar
+              :active-filters="hotelFilters"
+              @update:filters="updateHotelFilters"
+              @update:sort="updateHotelSort"
+            />
+          </FilterSheet>
+        </aside>
 
       <!-- Listings Content Section -->
       <section class="w-full lg:w-3/4">
@@ -31,9 +42,14 @@
         </div>
         
         <div v-else>
-          <HotelList 
-            :hotels="filteredAndSortedHotels" 
+          <HotelList
+            :hotels="filteredAndSortedHotels"
             :searched="hasSearchedHotels"
+            :total="rawHotels.length"
+            :cached="wasCached"
+            show-refresh
+            :refreshing="isSearching"
+            @refresh="refreshHotels"
             @book="handleHotelBookingConfirmation"
           />
         </div>
@@ -70,30 +86,60 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted } from 'vue';
+import { useRoute, useRouter } from '#imports';
 import type { Hotel, HotelSearchQuery, HotelFilterOptions } from '~/types';
+import { HOTEL_DEFAULT_FILTERS, HOTEL_PRICE_RANGE } from '~/utils/filterDefaults';
+
+const route = useRoute();
+const router = useRouter();
+
+// Hydrate the form from the query string so searches are shareable and survive
+// a refresh or back-navigation.
+const formInitial = computed<Partial<HotelSearchQuery>>(() => ({
+  destination: (route.query.destination as string) || '',
+  destinationName: (route.query.destinationName as string) || '',
+  checkIn: (route.query.checkIn as string) || undefined,
+  checkOut: (route.query.checkOut as string) || undefined,
+  adults: route.query.adults ? Number(route.query.adults) : undefined,
+  rooms: route.query.rooms ? Number(route.query.rooms) : undefined,
+}));
+
+const syncUrl = (query: HotelSearchQuery) => {
+  router.replace({
+    query: {
+      ...(query.destination ? { destination: query.destination } : {}),
+      ...(query.destinationName ? { destinationName: query.destinationName } : {}),
+      ...(query.checkIn ? { checkIn: query.checkIn } : {}),
+      ...(query.checkOut ? { checkOut: query.checkOut } : {}),
+      ...(query.adults ? { adults: String(query.adults) } : {}),
+      ...(query.rooms ? { rooms: String(query.rooms) } : {}),
+    },
+  });
+};
 
 // Hotel state
 const hasSearchedHotels = ref(false);
 const rawHotels = ref<Hotel[]>([]);
-const hotelFilters = ref<HotelFilterOptions>({
-  maxPrice: 800,
-  minRating: 0,
-});
+const hotelFilters = ref<HotelFilterOptions>({ ...HOTEL_DEFAULT_FILTERS });
 const hotelSortBy = ref<string>('price_asc');
 
 // Shared loaders and error trackers
 const isSearching = ref(false);
 const hasFailed = ref(false);
 const errorMessage = ref('');
+const wasCached = ref(false);
+const lastQuery = ref<HotelSearchQuery | null>(null);
 
 const showBookingModal = ref(false);
 const selectedHotel = ref<Hotel | null>(null);
 
 // Hotel Search triggers
-const handleHotelSearch = async (query: HotelSearchQuery) => {
+const handleHotelSearch = async (query: HotelSearchQuery, refresh = false) => {
   isSearching.value = true;
   hasFailed.value = false;
+  syncUrl(query);
+  lastQuery.value = query;
   
   try {
     const response = await $fetch<{ success: boolean; data: Hotel[]; error?: string }>('/api/hotels', {
@@ -103,8 +149,13 @@ const handleHotelSearch = async (query: HotelSearchQuery) => {
         checkOut: query.checkOut,
         adults: query.adults,
         rooms: query.rooms,
+        // Ask the server to bypass its cache so the user sees live rates.
+        refresh: refresh ? 1 : undefined,
       }
     });
+
+    // Surfaced so the user can tell cached results from a live lookup.
+    wasCached.value = response.headers?.get('x-cache') === 'HIT';
     
     if (response && response.success) {
       rawHotels.value = response.data;
@@ -130,6 +181,28 @@ const updateHotelSort = (newSort: string) => {
   hotelSortBy.value = newSort;
 };
 
+// Chips list only filters that differ from the defaults.
+const activeChips = computed(() => {
+  const chips: { key: string; label: string }[] = [];
+  const f = hotelFilters.value;
+
+  if (f.maxPrice !== undefined && f.maxPrice < HOTEL_PRICE_RANGE.max) {
+    chips.push({ key: 'maxPrice', label: `Under $${f.maxPrice}/night` });
+  }
+  if (f.minRating !== undefined && f.minRating > 0) {
+    chips.push({ key: 'minRating', label: `${f.minRating.toFixed(1)}+ rating` });
+  }
+
+  return chips;
+});
+
+const removeFilter = (key: string) => {
+  const f = { ...hotelFilters.value };
+  if (key === 'maxPrice') f.maxPrice = HOTEL_PRICE_RANGE.max;
+  if (key === 'minRating') f.minRating = 0;
+  hotelFilters.value = f;
+};
+
 // Computed state for filtered and sorted hotels
 const filteredAndSortedHotels = computed(() => {
   let result = [...rawHotels.value];
@@ -149,12 +222,34 @@ const filteredAndSortedHotels = computed(() => {
     } else if (hotelSortBy.value === 'price_desc') {
       return b.pricePerNight - a.pricePerNight;
     } else if (hotelSortBy.value === 'rating_desc') {
-      return (b.rating || 0) < (a.rating || 0) ? 1 : -1;
+      return (b.rating ?? 0) - (a.rating ?? 0);
     }
     return 0;
   });
 
   return result;
+});
+
+// Force a live upstream lookup instead of serving cached rates.
+const refreshHotels = () => {
+  if (lastQuery.value) {
+    handleHotelSearch(lastQuery.value, true);
+  }
+};
+
+// Run the search on mount when the URL carries a complete query.
+onMounted(() => {
+  const { destination, checkIn, checkOut } = route.query;
+  if (destination && checkIn && checkOut) {
+    handleHotelSearch({
+      destination: destination as string,
+      destinationName: (route.query.destinationName as string) || (destination as string),
+      checkIn: checkIn as string,
+      checkOut: checkOut as string,
+      adults: route.query.adults ? Number(route.query.adults) : 2,
+      rooms: route.query.rooms ? Number(route.query.rooms) : 1,
+    });
+  }
 });
 
 // Hotel booking action confirmation

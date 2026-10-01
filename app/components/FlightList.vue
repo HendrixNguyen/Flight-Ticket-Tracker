@@ -20,7 +20,26 @@
 
     <!-- Listings -->
     <div v-else class="space-y-4">
-      <p class="text-sm font-bold text-slate-500 dark:text-slate-400 mb-4 uppercase tracking-wider">Found {{ flights.length }} flights for your journey</p>
+      <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
+        <p class="text-sm font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider" aria-live="polite">
+          Showing {{ flights.length }} of {{ total }} flights<span v-if="flights.length < total"> — some are hidden by your filters</span>
+        </p>
+        <div class="flex items-center gap-3">
+          <span v-if="cached" class="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+            Cached prices
+          </span>
+          <button
+            v-if="showRefresh"
+            type="button"
+            @click="emit('refresh')"
+            :disabled="refreshing"
+            class="inline-flex items-center gap-1.5 rounded-lg border border-blue-100/60 dark:border-blue-900/30 bg-blue-50 dark:bg-blue-950/40 px-3 py-1.5 text-xs font-bold text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/40 transition-colors cursor-pointer focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <RefreshCw class="w-3.5 h-3.5" :class="{ 'animate-spin': refreshing }" aria-hidden="true" />
+            {{ refreshing ? 'Refreshing' : 'Refresh prices' }}
+          </button>
+        </div>
+      </div>
       <TransitionGroup 
         name="list" 
         tag="div" 
@@ -37,12 +56,22 @@
 </template>
 
 <script setup lang="ts">
-import { Map, SearchX } from 'lucide-vue-next';
+import { Map, SearchX, RefreshCw } from 'lucide-vue-next';
 import type { Flight } from '~/types';
 
 defineProps<{
   flights: Flight[],
-  searched: boolean
+  searched: boolean,
+  /** Unfiltered result count, so hidden results are disclosed rather than silent. */
+  total: number,
+  /** True when the server served these from its cache. */
+  cached?: boolean,
+  showRefresh?: boolean,
+  refreshing?: boolean,
+}>();
+
+const emit = defineEmits<{
+  (e: 'refresh'): void;
 }>();
 </script>
 

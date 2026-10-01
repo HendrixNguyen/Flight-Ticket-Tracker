@@ -3,7 +3,11 @@
     
     <!-- Search Card Form Section -->
     <div class="bg-white/40 dark:bg-slate-900/40 backdrop-blur-xl p-6 rounded-3xl shadow-sm border border-white/40 dark:border-white/10 mb-8 transform hover:shadow-md transition-all relative z-20">
-      <FlightSearchForm @search="handleFlightSearch" />
+      <FlightSearchForm
+        :initial="formInitial"
+        @search="handleFlightSearch"
+        @change="syncUrl"
+      />
     </div>
 
     <!-- Active Search Grid -->
@@ -11,12 +15,19 @@
       
       <!-- Sidebar Filters -->
       <aside class="w-full lg:w-1/4">
-        <FilterSidebar 
-          :active-filters="flightFilters"
-          @update:filters="updateFlightFilters"
-          @update:sort="updateFlightSort"
-        />
-      </aside>
+          <ActiveFilterChips :chips="activeChips" @remove="removeFilter" />
+          <FilterSheet
+            title="Filters"
+            :count="activeChips.length"
+            :result-count="filteredAndSortedFlights.length"
+          >
+            <FilterSidebar
+              :active-filters="flightFilters"
+              @update:filters="updateFlightFilters"
+              @update:sort="updateFlightSort"
+            />
+          </FilterSheet>
+        </aside>
 
       <!-- Listings Content Section -->
       <section class="w-full lg:w-3/4">
@@ -31,9 +42,14 @@
         </div>
         
         <div v-else>
-          <FlightList 
-            :flights="filteredAndSortedFlights" 
+          <FlightList
+            :flights="filteredAndSortedFlights"
             :searched="hasSearchedFlights"
+            :total="rawFlights.length"
+            :cached="wasCached"
+            show-refresh
+            :refreshing="isSearching"
+            @refresh="refreshFlights"
           />
         </div>
       </section>
@@ -42,29 +58,54 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted } from 'vue';
+import { useRoute, useRouter } from '#imports';
 import type { Flight, SearchQuery, FilterOptions, SortOption } from '~/types';
+import { FLIGHT_DEFAULT_FILTERS, FLIGHT_PRICE_RANGE } from '~/utils/filterDefaults';
+
+const route = useRoute();
+const router = useRouter();
 
 // Flight state
 const hasSearchedFlights = ref(false);
 const rawFlights = ref<Flight[]>([]);
-const flightFilters = ref<FilterOptions>({
-  maxPrice: 1500,
-  airlines: [],
-  maxStops: 2,
-});
+const flightFilters = ref<FilterOptions>({ ...FLIGHT_DEFAULT_FILTERS });
 const flightSortBy = ref<SortOption>('price_asc');
+
+// Hydrate the form from the query string so searches are shareable and survive
+// a refresh or back-navigation.
+const formInitial = computed<Partial<SearchQuery>>(() => ({
+  from: (route.query.from as string) || '',
+  to: (route.query.to as string) || '',
+  date: (route.query.date as string) || undefined,
+  returnDate: (route.query.returnDate as string) || '',
+}));
+
+const syncUrl = (query: SearchQuery) => {
+  router.replace({
+    query: {
+      ...(query.from ? { from: query.from } : {}),
+      ...(query.to ? { to: query.to } : {}),
+      ...(query.date ? { date: query.date } : {}),
+      ...(query.returnDate ? { returnDate: query.returnDate } : {}),
+    },
+  });
+};
 
 // Shared loaders and error trackers
 const isSearching = ref(false);
 const hasFailed = ref(false);
 const errorMessage = ref('');
+const wasCached = ref(false);
+const lastQuery = ref<SearchQuery | null>(null);
 
 // Flight Search triggers
-const handleFlightSearch = async (query: SearchQuery) => {
+const handleFlightSearch = async (query: SearchQuery, refresh = false) => {
   isSearching.value = true;
   hasFailed.value = false;
-  
+  syncUrl(query);
+  lastQuery.value = query;
+
   try {
     const response = await $fetch<{ success: boolean; data: Flight[]; error?: string }>('/api/flights', {
       params: {
@@ -72,8 +113,13 @@ const handleFlightSearch = async (query: SearchQuery) => {
         to: query.to,
         date: query.date,
         returnDate: query.returnDate,
+        // Ask the server to bypass its cache so the user sees live prices.
+        refresh: refresh ? 1 : undefined,
       }
     });
+
+    // Surfaced so the user can tell cached results from a live lookup.
+    wasCached.value = response.headers?.get('x-cache') === 'HIT';
     
     if (response && response.success) {
       rawFlights.value = response.data;
@@ -91,12 +137,62 @@ const handleFlightSearch = async (query: SearchQuery) => {
   }
 };
 
+// Run the search on mount when the URL carries a complete query, so a shared
+// link restores the results rather than just the form fields.
+onMounted(() => {
+  const { from, to, date } = route.query;
+  if (from && to && date) {
+    handleFlightSearch({
+      from: from as string,
+      to: to as string,
+      date: date as string,
+      returnDate: (route.query.returnDate as string) || '',
+      passengers: 1,
+    });
+  }
+});
+
+// Force a live upstream lookup instead of serving cached prices.
+const refreshFlights = () => {
+  if (lastQuery.value) {
+    handleFlightSearch(lastQuery.value, true);
+  }
+};
+
 const updateFlightFilters = (newFilters: FilterOptions) => {
   flightFilters.value = { ...flightFilters.value, ...newFilters };
 };
 
 const updateFlightSort = (newSort: SortOption) => {
   flightSortBy.value = newSort;
+};
+
+// Chips only list filters that differ from the defaults, so a fresh search
+// shows none rather than a row of no-op badges.
+const activeChips = computed(() => {
+  const chips: { key: string; label: string }[] = [];
+  const f = flightFilters.value;
+
+  if (f.maxPrice !== undefined && f.maxPrice < FLIGHT_PRICE_RANGE.max) {
+    chips.push({ key: 'maxPrice', label: `Under $${f.maxPrice}` });
+  }
+  if (f.maxStops !== undefined && f.maxStops !== FLIGHT_DEFAULT_FILTERS.maxStops) {
+    const labels: Record<number, string> = { 0: 'Direct only', 1: 'Max 1 stop' };
+    chips.push({ key: 'maxStops', label: labels[f.maxStops] ?? `Max ${f.maxStops} stops` });
+  }
+  if (f.airlines && f.airlines.length > 0) {
+    chips.push({ key: 'airlines', label: `${f.airlines.length} airline${f.airlines.length === 1 ? '' : 's'}` });
+  }
+
+  return chips;
+});
+
+const removeFilter = (key: string) => {
+  const f = { ...flightFilters.value };
+  if (key === 'maxPrice') f.maxPrice = FLIGHT_PRICE_RANGE.max;
+  if (key === 'maxStops') f.maxStops = FLIGHT_DEFAULT_FILTERS.maxStops;
+  if (key === 'airlines') f.airlines = [];
+  flightFilters.value = f;
 };
 
 // Computed state for filtered and sorted flights
