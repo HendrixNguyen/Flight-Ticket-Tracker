@@ -46,6 +46,10 @@
             :flights="filteredAndSortedFlights"
             :searched="hasSearchedFlights"
             :total="rawFlights.length"
+            :cached="wasCached"
+            show-refresh
+            :refreshing="isSearching"
+            @refresh="refreshFlights"
           />
         </div>
       </section>
@@ -92,13 +96,16 @@ const syncUrl = (query: SearchQuery) => {
 const isSearching = ref(false);
 const hasFailed = ref(false);
 const errorMessage = ref('');
+const wasCached = ref(false);
+const lastQuery = ref<SearchQuery | null>(null);
 
 // Flight Search triggers
-const handleFlightSearch = async (query: SearchQuery) => {
+const handleFlightSearch = async (query: SearchQuery, refresh = false) => {
   isSearching.value = true;
   hasFailed.value = false;
   syncUrl(query);
-  
+  lastQuery.value = query;
+
   try {
     const response = await $fetch<{ success: boolean; data: Flight[]; error?: string }>('/api/flights', {
       params: {
@@ -106,8 +113,13 @@ const handleFlightSearch = async (query: SearchQuery) => {
         to: query.to,
         date: query.date,
         returnDate: query.returnDate,
+        // Ask the server to bypass its cache so the user sees live prices.
+        refresh: refresh ? 1 : undefined,
       }
     });
+
+    // Surfaced so the user can tell cached results from a live lookup.
+    wasCached.value = response.headers?.get('x-cache') === 'HIT';
     
     if (response && response.success) {
       rawFlights.value = response.data;
@@ -139,6 +151,13 @@ onMounted(() => {
     });
   }
 });
+
+// Force a live upstream lookup instead of serving cached prices.
+const refreshFlights = () => {
+  if (lastQuery.value) {
+    handleFlightSearch(lastQuery.value, true);
+  }
+};
 
 const updateFlightFilters = (newFilters: FilterOptions) => {
   flightFilters.value = { ...flightFilters.value, ...newFilters };

@@ -30,6 +30,27 @@ export default defineEventHandler(async (event) => {
     };
   }
 
+  const limit = RATE_LIMIT.locations;
+  const gate = rateLimit('locations', clientIp(event), limit.limit, limit.windowMs);
+  if (!gate.allowed) {
+    setHeader(event, 'Retry-After', String(gate.retryAfterSeconds));
+    throw createError({
+      statusCode: 429,
+      statusMessage: 'Too many location searches. Please slow down.',
+    });
+  }
+
+  const key = cacheKey('locations', { q });
+  // ?refresh=1 bypasses the cache so a user can force a live lookup.
+  if (query.refresh !== '1') {
+    const cached = cacheGet<{ success: boolean; data: LocationSuggestion[] }>(key);
+    if (cached) {
+      setHeader(event, 'X-Cache', 'HIT');
+      return cached;
+    }
+  }
+  setHeader(event, 'X-Cache', 'MISS');
+
   // If SerpApi Key is missing, use mock suggestions for offline development
   if (!config.serpApiKey) {
     console.warn('SerpApi Key is missing. Using local mock autocomplete suggestions.');
@@ -95,13 +116,15 @@ export default defineEventHandler(async (event) => {
       }
     }
 
-    return {
+    const result = {
       success: true,
       data: uniqueSuggestions,
     };
+    cacheSet(key, result, CACHE_TTL.locations);
+    return result;
   } catch (error: any) {
     console.error('Error fetching autocomplete suggestions from SerpApi:', error);
-    
+
     // Fall back to mock suggestions if SerpApi call fails
     const filtered = MOCK_SUGGESTIONS.filter(item => 
       item.name.toLowerCase().includes(q.toLowerCase()) || 

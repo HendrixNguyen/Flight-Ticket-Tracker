@@ -91,6 +91,26 @@ export default defineEventHandler(async (event) => {
     };
   }
 
+  const limit = RATE_LIMIT.hotelsAutocomplete;
+  const gate = rateLimit('hotels-autocomplete', clientIp(event), limit.limit, limit.windowMs);
+  if (!gate.allowed) {
+    setHeader(event, 'Retry-After', String(gate.retryAfterSeconds));
+    throw createError({
+      statusCode: 429,
+      statusMessage: 'Too many destination searches. Please slow down.',
+    });
+  }
+
+  const key = cacheKey('hotels-autocomplete', { q });
+  if (query.refresh !== '1') {
+    const cached = cacheGet<{ success: boolean; data: HotelAutocompleteSuggestion[] }>(key);
+    if (cached) {
+      setHeader(event, 'X-Cache', 'HIT');
+      return cached;
+    }
+  }
+  setHeader(event, 'X-Cache', 'MISS');
+
   // If SerpApi Key is missing, fall back to mock data
   if (!config.serpApiKey) {
     const filtered = MOCK_SUGGESTIONS.filter((item) =>
@@ -128,7 +148,7 @@ export default defineEventHandler(async (event) => {
       }
 
       return {
-        id: item.property_token || item.kgmid || item.data_cid || `suggestion-${Math.random().toString(36).substring(2, 11)}`,
+        id: item.property_token || item.kgmid || item.data_cid || slugify(item.value, item.location, 'suggestion'),
         name: item.value || '',
         type: normalizedType,
         description: item.autocomplete_suggestion || item.location || '',
@@ -137,10 +157,12 @@ export default defineEventHandler(async (event) => {
       };
     });
 
-    return {
+    const result = {
       success: true,
       data: mappedSuggestions,
     };
+    cacheSet(key, result, CACHE_TTL.hotelsAutocomplete);
+    return result;
   } catch (error: any) {
     console.error('Error querying SerpApi Google Hotels Autocomplete:', error);
     

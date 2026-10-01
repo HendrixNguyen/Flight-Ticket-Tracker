@@ -46,6 +46,10 @@
             :hotels="filteredAndSortedHotels"
             :searched="hasSearchedHotels"
             :total="rawHotels.length"
+            :cached="wasCached"
+            show-refresh
+            :refreshing="isSearching"
+            @refresh="refreshHotels"
             @book="handleHotelBookingConfirmation"
           />
         </div>
@@ -124,15 +128,18 @@ const hotelSortBy = ref<string>('price_asc');
 const isSearching = ref(false);
 const hasFailed = ref(false);
 const errorMessage = ref('');
+const wasCached = ref(false);
+const lastQuery = ref<HotelSearchQuery | null>(null);
 
 const showBookingModal = ref(false);
 const selectedHotel = ref<Hotel | null>(null);
 
 // Hotel Search triggers
-const handleHotelSearch = async (query: HotelSearchQuery) => {
+const handleHotelSearch = async (query: HotelSearchQuery, refresh = false) => {
   isSearching.value = true;
   hasFailed.value = false;
   syncUrl(query);
+  lastQuery.value = query;
   
   try {
     const response = await $fetch<{ success: boolean; data: Hotel[]; error?: string }>('/api/hotels', {
@@ -142,8 +149,13 @@ const handleHotelSearch = async (query: HotelSearchQuery) => {
         checkOut: query.checkOut,
         adults: query.adults,
         rooms: query.rooms,
+        // Ask the server to bypass its cache so the user sees live rates.
+        refresh: refresh ? 1 : undefined,
       }
     });
+
+    // Surfaced so the user can tell cached results from a live lookup.
+    wasCached.value = response.headers?.get('x-cache') === 'HIT';
     
     if (response && response.success) {
       rawHotels.value = response.data;
@@ -217,6 +229,13 @@ const filteredAndSortedHotels = computed(() => {
 
   return result;
 });
+
+// Force a live upstream lookup instead of serving cached rates.
+const refreshHotels = () => {
+  if (lastQuery.value) {
+    handleHotelSearch(lastQuery.value, true);
+  }
+};
 
 // Run the search on mount when the URL carries a complete query.
 onMounted(() => {
