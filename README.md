@@ -43,6 +43,21 @@ bun run build   # emits .output/
 bun run preview # serves the production build locally
 ```
 
+## Currency
+
+Pick your currency from the selector in the header. The choice is remembered in `localStorage` and
+applied to every search.
+
+Conversion is done by SerpApi, not by this app — the selected code is passed as the `currency`
+parameter, so prices shown are the fares actually quoted rather than amounts converted with a local
+exchange-rate table. Changing currency re-runs the current search.
+
+Supported: USD, EUR, GBP, JPY, VND, AUD, CAD, SGD, THB, KRW, INR, CHF.
+
+The **price filter sliders stay in USD** regardless of display currency, and are labelled `(USD)` to
+avoid implying otherwise. Converting the slider bounds would require a rate table and would make the
+filter meaningless.
+
 ## Environment variables
 
 | Variable | Required | Description |

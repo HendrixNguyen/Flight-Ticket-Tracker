@@ -58,10 +58,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useRoute, useRouter } from '#imports';
 import type { Flight, SearchQuery, FilterOptions, SortOption } from '~/types';
 import { FLIGHT_DEFAULT_FILTERS, FLIGHT_PRICE_RANGE } from '~/utils/filterDefaults';
+import { useCurrency } from '~/composables/useCurrency';
+
+const { currencyCode, restore } = useCurrency();
 
 const route = useRoute();
 const router = useRouter();
@@ -115,6 +118,7 @@ const handleFlightSearch = async (query: SearchQuery, refresh = false) => {
         returnDate: query.returnDate,
         // Ask the server to bypass its cache so the user sees live prices.
         refresh: refresh ? 1 : undefined,
+        currency: currencyCode.value,
       }
     });
 
@@ -137,9 +141,29 @@ const handleFlightSearch = async (query: SearchQuery, refresh = false) => {
   }
 };
 
+// A currency change invalidates the current results, since the same search
+// returns different amounts. Re-run the active search with a forced refresh so
+// the cache does not serve the previous currency's prices.
+const handleCurrencyChange = () => {
+  if (lastQuery.value) {
+    handleFlightSearch(lastQuery.value, true);
+  }
+};
+
+onUnmounted(() => {
+  window.removeEventListener('currency-changed', handleCurrencyChange);
+});
+
 // Run the search on mount when the URL carries a complete query, so a shared
 // link restores the results rather than just the form fields.
 onMounted(() => {
+  window.addEventListener('currency-changed', handleCurrencyChange);
+
+  // Apply the stored currency before searching, so the initial request asks for
+  // the right prices. Doing this here rather than relying on the header mounting
+  // first keeps the search correct regardless of component order.
+  restore();
+
   const { from, to, date } = route.query;
   if (from && to && date) {
     handleFlightSearch({
@@ -174,7 +198,7 @@ const activeChips = computed(() => {
   const f = flightFilters.value;
 
   if (f.maxPrice !== undefined && f.maxPrice < FLIGHT_PRICE_RANGE.max) {
-    chips.push({ key: 'maxPrice', label: `Under $${f.maxPrice}` });
+    chips.push({ key: 'maxPrice', label: `Under $${f.maxPrice} (USD)` });
   }
   if (f.maxStops !== undefined && f.maxStops !== FLIGHT_DEFAULT_FILTERS.maxStops) {
     const labels: Record<number, string> = { 0: 'Direct only', 1: 'Max 1 stop' };

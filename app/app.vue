@@ -53,7 +53,10 @@
               </li>
             </ul>
           </nav>
-          <ThemeSwitcher />
+          <div class="flex items-center gap-2 sm:gap-3">
+            <CurrencySelector @change="handleCurrencyChange" />
+            <ThemeSwitcher />
+          </div>
         </div>
       </div>
     </header>
@@ -107,4 +110,10 @@ import { useRoute } from '#imports';
 import { Plane, Building } from 'lucide-vue-next';
 
 const route = useRoute();
+
+// Prices are currency-specific, so a currency change invalidates any cached
+// search results. Pages re-run their active search in response.
+const handleCurrencyChange = () => {
+  window.dispatchEvent(new CustomEvent('currency-changed'));
+};
 </script>

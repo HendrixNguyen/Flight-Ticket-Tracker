@@ -65,7 +65,7 @@
           </div>
           <h3 class="text-xl font-black text-slate-900 dark:text-slate-100 mb-2">Booking Initiated!</h3>
           <p class="text-sm text-slate-600 dark:text-slate-400 mb-4 leading-relaxed">
-            Your booking query for <strong class="text-slate-800 dark:text-slate-200">{{ selectedHotel?.name }}</strong> at <strong>${{ selectedHotel?.pricePerNight }}/night</strong> has been dispatched.
+            Your booking query for <strong class="text-slate-800 dark:text-slate-200">{{ selectedHotel?.name }}</strong> at <strong>{{ formatAmount(selectedHotel?.pricePerNight ?? 0) }}/night</strong> has been dispatched.
           </p>
           <div class="bg-slate-50 dark:bg-slate-950/40 border border-slate-100 dark:border-slate-800/40 p-3 rounded-2xl mb-6 text-xs text-slate-500">
             Location: {{ selectedHotel?.location }}<br/>
@@ -86,10 +86,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useRoute, useRouter } from '#imports';
 import type { Hotel, HotelSearchQuery, HotelFilterOptions } from '~/types';
 import { HOTEL_DEFAULT_FILTERS, HOTEL_PRICE_RANGE } from '~/utils/filterDefaults';
+import { useCurrency } from '~/composables/useCurrency';
+
+const { formatAmount, currencyCode, restore } = useCurrency();
 
 const route = useRoute();
 const router = useRouter();
@@ -151,6 +154,7 @@ const handleHotelSearch = async (query: HotelSearchQuery, refresh = false) => {
         rooms: query.rooms,
         // Ask the server to bypass its cache so the user sees live rates.
         refresh: refresh ? 1 : undefined,
+        currency: currencyCode.value,
       }
     });
 
@@ -187,7 +191,7 @@ const activeChips = computed(() => {
   const f = hotelFilters.value;
 
   if (f.maxPrice !== undefined && f.maxPrice < HOTEL_PRICE_RANGE.max) {
-    chips.push({ key: 'maxPrice', label: `Under $${f.maxPrice}/night` });
+    chips.push({ key: 'maxPrice', label: `Under $${f.maxPrice}/night (USD)` });
   }
   if (f.minRating !== undefined && f.minRating > 0) {
     chips.push({ key: 'minRating', label: `${f.minRating.toFixed(1)}+ rating` });
@@ -237,8 +241,25 @@ const refreshHotels = () => {
   }
 };
 
+const handleCurrencyChange = () => {
+  if (lastQuery.value) {
+    handleHotelSearch(lastQuery.value, true);
+  }
+};
+
+onUnmounted(() => {
+  window.removeEventListener('currency-changed', handleCurrencyChange);
+});
+
 // Run the search on mount when the URL carries a complete query.
 onMounted(() => {
+  window.addEventListener('currency-changed', handleCurrencyChange);
+
+  // Apply the stored currency before searching, so the initial request asks for
+  // the right prices. Doing this here rather than relying on the header mounting
+  // first keeps the search correct regardless of component order.
+  restore();
+
   const { destination, checkIn, checkOut } = route.query;
   if (destination && checkIn && checkOut) {
     handleHotelSearch({

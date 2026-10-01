@@ -62,7 +62,8 @@
     <div class="flex sm:flex-col items-center sm:items-end justify-between sm:justify-center gap-2 sm:w-1/5">
       <div class="text-left sm:text-right">
         <p class="text-xs text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider">Price per adult</p>
-        <p class="text-3xl font-black text-slate-900 dark:text-slate-100">${{ flight.price }}</p>
+        <p class="text-3xl font-black text-slate-900 dark:text-slate-100">{{ formatAmount(flight.price) }}</p>
+        <p class="text-[10px] font-semibold text-slate-400 dark:text-slate-500">{{ flight.currency }}</p>
       </div>
       <button class="bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 hover:bg-blue-600 dark:hover:bg-blue-500 hover:text-white px-6 py-2.5 rounded-xl font-bold transition-all w-full sm:w-auto text-center cursor-pointer border border-blue-100/50 dark:border-blue-900/30">
         Select
@@ -75,10 +76,13 @@
 <script setup lang="ts">
 import { Plane } from 'lucide-vue-next';
 import type { Flight } from '~/types';
+import { useCurrency } from '~/composables/useCurrency';
 
 const props = defineProps<{
   flight: Flight
 }>();
+
+const { formatAmount } = useCurrency();
 
 const formatTime = (isoString: string) => {
   return new Intl.DateTimeFormat('en-US', {

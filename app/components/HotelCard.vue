@@ -18,7 +18,7 @@
 
       <!-- Price overlay for mobile -->
       <div class="md:hidden absolute bottom-4 right-4 bg-blue-600/90 dark:bg-blue-500/90 backdrop-blur-md px-4 py-1.5 rounded-2xl text-white font-black text-lg border border-white/10">
-        ${{ hotel.pricePerNight }}<span class="text-xs font-normal"> / night</span>
+        {{ formatAmount(hotel.pricePerNight) }}<span class="text-xs font-normal"> / night</span>
       </div>
     </div>
 
@@ -75,19 +75,19 @@
         <div class="hidden md:block">
           <p class="text-[10px] text-slate-400 dark:text-slate-500 font-extrabold uppercase tracking-widest leading-none">Price per night</p>
           <div class="flex items-baseline gap-1 mt-1">
-            <span class="text-3xl font-black text-slate-900 dark:text-slate-100">${{ hotel.pricePerNight }}</span>
-            <span class="text-xs font-semibold text-slate-400 dark:text-slate-500">USD</span>
+            <span class="text-3xl font-black text-slate-900 dark:text-slate-100">{{ formatAmount(hotel.pricePerNight) }}</span>
+            <span class="text-xs font-semibold text-slate-400 dark:text-slate-500">{{ hotel.currency }}</span>
           </div>
           <!-- Stay Total Price (if check-in/out ranges are set) -->
           <p v-if="hotel.totalPrice" class="text-xs font-bold text-blue-600 dark:text-blue-400 mt-0.5">
-            Total stay: ${{ hotel.totalPrice }}
+            Total stay: {{ formatAmount(hotel.totalPrice) }}
           </p>
         </div>
 
         <!-- Mobile-only stay total -->
         <div class="md:hidden">
           <p v-if="hotel.totalPrice" class="text-xs font-bold text-blue-600 dark:text-blue-400">
-            Stay total: ${{ hotel.totalPrice }}
+            Stay total: {{ formatAmount(hotel.totalPrice) }}
           </p>
         </div>
 
@@ -105,6 +105,9 @@
 <script setup lang="ts">
 import { Star, MapPin } from 'lucide-vue-next';
 import type { Hotel } from '~/types';
+import { useCurrency } from '~/composables/useCurrency';
+
+const { formatAmount } = useCurrency();
 
 const props = defineProps<{
   hotel: Hotel;

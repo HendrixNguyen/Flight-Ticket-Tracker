@@ -28,7 +28,9 @@
     <!-- Max Price -->
     <div class="mb-8">
       <div class="flex justify-between items-center mb-3">
-        <h3 class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Max Price</h3>
+        <h3 class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+          Max Price <span class="text-[10px] text-slate-400 dark:text-slate-500 normal-case tracking-normal">(USD)</span>
+        </h3>
         <span class="text-sm font-bold text-blue-600 dark:text-blue-400">${{ localFilters.maxPrice }}</span>
       </div>
       <input 

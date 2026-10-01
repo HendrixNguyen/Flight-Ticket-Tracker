@@ -3,13 +3,15 @@
     <!-- Departure Input Trigger -->
     <div class="flex-1 w-full relative">
       <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1" for="departure-btn">Departure</label>
-      <button 
+      <button
         id="departure-btn"
         type="button"
         @click="openCalendar('start')"
         class="w-full flex items-center gap-3 pl-10 pr-4 py-3 border border-gray-300 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-900/60 focus:ring-2 focus:ring-blue-500 outline-none text-left cursor-pointer transition-all dark:text-slate-100 font-medium"
       >
-        <Calendar class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
+        <!-- Icon must sit inside the button: as an absolute sibling it would
+             centre against the label+button wrapper and sit too low. -->
+        <Calendar class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5 pointer-events-none" />
         <span>{{ formattedStart }}</span>
       </button>
     </div>
@@ -17,13 +19,13 @@
     <!-- Return Input Trigger -->
     <div class="flex-1 w-full relative">
       <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1" for="return-btn">Return</label>
-      <button 
+      <button
         id="return-btn"
         type="button"
         @click="openCalendar('end')"
         class="w-full flex items-center gap-3 pl-10 pr-4 py-3 border border-gray-300 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-900/60 focus:ring-2 focus:ring-blue-500 outline-none text-left cursor-pointer transition-all dark:text-slate-100 font-medium"
       >
-        <Calendar class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
+        <Calendar class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5 pointer-events-none" />
         <span>{{ formattedEnd }}</span>
       </button>
     </div>
