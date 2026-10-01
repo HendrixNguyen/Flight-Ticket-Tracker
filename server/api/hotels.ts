@@ -1,5 +1,18 @@
 import type { Hotel, HotelApiResponse } from '../../types';
 
+// Deterministic id fallback so card keys survive a refetch. A random id would
+// make Vue tear down and rebuild every card, killing transitions and selection state.
+const slugify = (name?: string, address?: string): string => {
+  const base = `${name || ''}-${address || ''}`
+    .toLowerCase()
+    .normalize('NFKD')
+    .replace(/[^\w\s-]/g, '')
+    .trim()
+    .replace(/[\s_-]+/g, '-');
+
+  return base ? `hotel-${base}` : 'hotel-unknown';
+};
+
 // Gorgeous fallback hotels for premium offline presentation
 const MOCK_HOTELS: Hotel[] = [
   {
@@ -203,7 +216,7 @@ export default defineEventHandler(async (event) => {
       }
 
       return {
-        id: item.property_token || item.kgmid || `hotel-${Math.random().toString(36).substring(2, 11)}`,
+        id: item.property_token || item.kgmid || slugify(item.name, item.address),
         name: item.name || 'Unnamed Luxury Hotel',
         description: item.description || 'Stunning property with premium services and elegant local access.',
         location: item.address || 'Central City Destination',

@@ -20,7 +20,7 @@
 
     <!-- Listings -->
     <div v-else class="space-y-4">
-      <p class="text-sm font-bold text-slate-500 dark:text-slate-400 mb-4 uppercase tracking-wider">Found {{ hotels.length }} accommodations for your stay</p>
+      <p class="text-sm font-bold text-slate-500 dark:text-slate-400 mb-4 uppercase tracking-wider" aria-live="polite">Showing {{ hotels.length }} of {{ total }} stays<span v-if="hotels.length < total"> — some are hidden by your filters</span></p>
       <TransitionGroup 
         name="list" 
         tag="div" 
@@ -44,6 +44,8 @@ import type { Hotel } from '~/types';
 defineProps<{
   hotels: Hotel[];
   searched: boolean;
+  /** Unfiltered result count, so hidden results are disclosed rather than silent. */
+  total: number;
 }>();
 
 const emit = defineEmits<{

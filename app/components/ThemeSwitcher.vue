@@ -9,7 +9,10 @@
     <button 
       @click.stop="toggleDropdown"
       type="button"
-      class="w-11 h-11 rounded-full bg-slate-950/60 dark:bg-slate-900/60 backdrop-blur-md border border-slate-800 dark:border-slate-800 shadow-md hover:scale-105 active:scale-95 transition-all duration-300 text-white cursor-pointer flex items-center justify-center outline-none focus:ring-1 focus:ring-blue-500/50"
+      class="w-11 h-11 rounded-full bg-slate-950/60 dark:bg-slate-900/60 backdrop-blur-md border border-slate-800 dark:border-slate-800 shadow-md hover:scale-105 active:scale-95 transition-all duration-300 text-white cursor-pointer flex items-center justify-center outline-none focus:ring-2 focus:ring-blue-500"
+      :aria-label="`Theme: ${activeLabel}. Change theme`"
+      :aria-expanded="isDropdownOpen"
+      aria-haspopup="true"
       title="Theme Settings"
     >
       <Sun v-if="themeMode === 'light'" class="w-4 h-4 text-orange-500 drop-shadow-[0_0_8px_rgba(249,115,22,0.65)] animate-pulse" />
@@ -36,7 +39,9 @@
               @mouseenter="hoveredOption = option.id"
               @mouseleave="hoveredOption = null"
               type="button"
-              class="w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-200 cursor-pointer outline-none"
+              class="w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-200 cursor-pointer outline-none focus:ring-2 focus:ring-blue-500"
+              :aria-label="`${option.name} theme`"
+              :aria-pressed="themeMode === option.id"
               :class="[themeMode === option.id ? 'bg-slate-800/50 border border-slate-700/50' : 'hover:bg-slate-800/30']"
             >
               <component 

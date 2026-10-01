@@ -91,3 +91,12 @@ export interface HotelAutocompleteSuggestion {
   propertyToken?: string;
 }
 
+/** Any autocomplete suggestion the LocationCombobox can render.
+ *  Flights and hotels return differently-shaped payloads; the combobox only
+ *  relies on id/name/description and tolerates the rest. */
+export type ComboboxSuggestion = (LocationSuggestion | HotelAutocompleteSuggestion) & {
+  id: string;
+  name: string;
+  description?: string;
+};
+

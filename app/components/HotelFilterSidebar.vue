@@ -34,12 +34,12 @@
         type="range" 
         v-model="localFilters.maxPrice" 
         @change="emitFilters"
-        min="50" max="1000" step="25"
+        :min="HOTEL_PRICE_RANGE.min" :max="HOTEL_PRICE_RANGE.max" :step="HOTEL_PRICE_RANGE.step"
         class="w-full h-2 bg-slate-200 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer accent-blue-600 dark:accent-blue-400"
       >
       <div class="flex justify-between text-xs text-slate-400 dark:text-slate-500 mt-2 font-bold">
-        <span>$50</span>
-        <span>$1000+</span>
+        <span>${{ HOTEL_PRICE_RANGE.min }}</span>
+        <span>${{ HOTEL_PRICE_RANGE.max }}+</span>
       </div>
     </div>
 
@@ -80,6 +80,7 @@
 import { ref, watch } from 'vue';
 import { SlidersHorizontal, Star } from 'lucide-vue-next';
 import type { HotelFilterOptions } from '~/types';
+import { HOTEL_DEFAULT_FILTERS, HOTEL_PRICE_RANGE } from '~/utils/filterDefaults';
 
 const props = defineProps<{
   activeFilters: HotelFilterOptions;
@@ -102,10 +103,7 @@ const emitSort = () => {
 };
 
 const resetFilters = () => {
-  localFilters.value = {
-    maxPrice: 800,
-    minRating: 0,
-  };
+  localFilters.value = { ...HOTEL_DEFAULT_FILTERS };
   localSort.value = 'price_asc';
   emitFilters();
   emitSort();

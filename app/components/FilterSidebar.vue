@@ -35,12 +35,12 @@
         type="range" 
         v-model="localFilters.maxPrice" 
         @change="emitFilters"
-        min="100" max="2000" step="50"
+        :min="FLIGHT_PRICE_RANGE.min" :max="FLIGHT_PRICE_RANGE.max" :step="FLIGHT_PRICE_RANGE.step"
         class="w-full h-2 bg-slate-200 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer accent-blue-600 dark:accent-blue-400"
       >
       <div class="flex justify-between text-xs text-slate-400 dark:text-slate-500 mt-2">
-        <span>$100</span>
-        <span>$2000+</span>
+        <span>${{ FLIGHT_PRICE_RANGE.min }}</span>
+        <span>${{ FLIGHT_PRICE_RANGE.max }}+</span>
       </div>
     </div>
 
@@ -51,15 +51,15 @@
       <h3 class="text-xs font-bold text-slate-500 dark:text-slate-400 mb-3 uppercase tracking-wider">Stops</h3>
       <div class="space-y-3">
         <label class="flex items-center gap-3 cursor-pointer group">
-          <input type="radio" v-model="localFilters.maxStops" :value="0" @change="emitFilters" class="w-4 h-4 text-blue-600 dark:text-blue-400 focus:ring-blue-500 dark:focus:ring-blue-400 border-slate-300 dark:border-slate-850 bg-transparent">
+          <input type="radio" v-model="localFilters.maxStops" :value="0" @change="emitFilters" class="w-4 h-4 text-blue-600 dark:text-blue-400 focus:ring-blue-500 dark:focus:ring-blue-400 border-slate-300 dark:border-slate-800 bg-transparent">
           <span class="text-slate-700 dark:text-slate-300 group-hover:text-slate-900 dark:group-hover:text-slate-100 font-medium transition-colors">Direct flights only</span>
         </label>
         <label class="flex items-center gap-3 cursor-pointer group">
-          <input type="radio" v-model="localFilters.maxStops" :value="1" @change="emitFilters" class="w-4 h-4 text-blue-600 dark:text-blue-400 focus:ring-blue-500 dark:focus:ring-blue-400 border-slate-300 dark:border-slate-850 bg-transparent">
+          <input type="radio" v-model="localFilters.maxStops" :value="1" @change="emitFilters" class="w-4 h-4 text-blue-600 dark:text-blue-400 focus:ring-blue-500 dark:focus:ring-blue-400 border-slate-300 dark:border-slate-800 bg-transparent">
           <span class="text-slate-700 dark:text-slate-300 group-hover:text-slate-900 dark:group-hover:text-slate-100 font-medium transition-colors">Up to 1 stop</span>
         </label>
         <label class="flex items-center gap-3 cursor-pointer group">
-          <input type="radio" v-model="localFilters.maxStops" :value="2" @change="emitFilters" class="w-4 h-4 text-blue-600 dark:text-blue-400 focus:ring-blue-500 dark:focus:ring-blue-400 border-slate-300 dark:border-slate-850 bg-transparent">
+          <input type="radio" v-model="localFilters.maxStops" :value="2" @change="emitFilters" class="w-4 h-4 text-blue-600 dark:text-blue-400 focus:ring-blue-500 dark:focus:ring-blue-400 border-slate-300 dark:border-slate-800 bg-transparent">
           <span class="text-slate-700 dark:text-slate-300 group-hover:text-slate-900 dark:group-hover:text-slate-100 font-medium transition-colors">Any number of stops</span>
         </label>
       </div>
@@ -71,6 +71,7 @@
 import { ref, watch } from 'vue';
 import { SlidersHorizontal } from 'lucide-vue-next';
 import type { FilterOptions, SortOption } from '~/types';
+import { FLIGHT_DEFAULT_FILTERS, FLIGHT_PRICE_RANGE } from '~/utils/filterDefaults';
 
 const props = defineProps<{
   activeFilters: FilterOptions
@@ -93,11 +94,7 @@ const emitSort = () => {
 };
 
 const resetFilters = () => {
-  localFilters.value = {
-    maxPrice: 2000,
-    airlines: [],
-    maxStops: 2,
-  };
+  localFilters.value = { ...FLIGHT_DEFAULT_FILTERS };
   localSort.value = 'price_asc';
   emitFilters();
   emitSort();

@@ -13,7 +13,7 @@
         <p class="font-bold text-slate-900 dark:text-slate-100 leading-snug truncate w-full">{{ flight.airline }}</p>
         <div class="flex items-center gap-1.5 mt-1 flex-wrap">
           <span class="text-xs font-semibold text-slate-500 dark:text-slate-400">FL{{ flight.flightNumber }}</span>
-          <span v-if="flight.airplane" class="text-[10px] font-extrabold uppercase tracking-wide text-slate-400 dark:text-slate-500 border border-slate-200/50 dark:border-slate-850 px-1.5 py-0.5 rounded-md truncate max-w-[140px]" :title="flight.airplane">
+          <span v-if="flight.airplane" class="text-[10px] font-extrabold uppercase tracking-wide text-slate-400 dark:text-slate-500 border border-slate-200/50 dark:border-slate-800 px-1.5 py-0.5 rounded-md truncate max-w-[140px]" :title="flight.airplane">
             {{ flight.airplane.split('(')[0].trim() }}
           </span>
         </div>
@@ -25,7 +25,10 @@
       <!-- Departure -->
       <div class="text-center sm:text-left">
         <p class="text-2xl font-black text-slate-900 dark:text-slate-100">{{ formatTime(flight.departureTime) }}</p>
-        <p class="text-sm font-semibold text-slate-500 dark:text-slate-400">{{ flight.departureAirport }}</p>
+        <div class="flex flex-col sm:items-start">
+          <p class="text-sm font-semibold text-slate-500 dark:text-slate-400">{{ flight.departureAirport }}</p>
+          <p class="text-[10px] text-slate-400 dark:text-slate-500">{{ timeZone(flight.departureTime) }}</p>
+        </div>
       </div>
 
       <!-- Duration Line -->
@@ -41,8 +44,13 @@
 
       <!-- Arrival -->
       <div class="text-center sm:text-right">
-        <p class="text-2xl font-black text-slate-900 dark:text-slate-100">{{ formatTime(flight.arrivalTime) }}</p>
-        <p class="text-sm font-semibold text-slate-500 dark:text-slate-400">{{ flight.arrivalAirport }}</p>
+        <p class="text-2xl font-black text-slate-900 dark:text-slate-100">
+          {{ formatTime(flight.arrivalTime) }}<span v-if="dayOffset(flight)" class="align-super text-sm font-bold text-blue-600 dark:text-blue-400 ml-0.5">+{{ dayOffset(flight) }}</span>
+        </p>
+        <div class="flex flex-col sm:items-end">
+          <p class="text-sm font-semibold text-slate-500 dark:text-slate-400">{{ flight.arrivalAirport }}</p>
+          <p class="text-[10px] text-slate-400 dark:text-slate-500">{{ timeZone(flight.arrivalTime) }}</p>
+        </div>
       </div>
     </div>
 
@@ -68,7 +76,7 @@
 import { Plane } from 'lucide-vue-next';
 import type { Flight } from '~/types';
 
-defineProps<{
+const props = defineProps<{
   flight: Flight
 }>();
 
@@ -84,5 +92,29 @@ const formatDuration = (minutes: number) => {
   const h = Math.floor(minutes / 60);
   const m = minutes % 60;
   return `${h}h ${m}m`;
+};
+
+/** Whole days between departure and arrival in the viewer's timezone.
+ *  Times are rendered in the browser's local zone, so a red-eye or a
+ *  transatlantic leg can land on a later calendar day than it departed.
+ *  Returns 0 when arrival is on the same day. */
+const dayOffset = (flight: Flight): number => {
+  const dep = new Date(flight.departureTime);
+  const arr = new Date(flight.arrivalTime);
+  if (Number.isNaN(dep.getTime()) || Number.isNaN(arr.getTime())) return 0;
+
+  // Compare calendar days at local midnight.
+  const depDay = Date.UTC(dep.getFullYear(), dep.getMonth(), dep.getDate());
+  const arrDay = Date.UTC(arr.getFullYear(), arr.getMonth(), arr.getDate());
+  const days = Math.round((arrDay - depDay) / 86_400_000);
+  return days > 0 ? days : 0;
+};
+
+/** Short timezone label, e.g. "PDT" - lets the user interpret the local times. */
+const timeZone = (isoString: string): string => {
+  const date = new Date(isoString);
+  if (Number.isNaN(date.getTime())) return '';
+  const parts = new Intl.DateTimeFormat('en-US', { timeZoneName: 'short' }).formatToParts(date);
+  return parts.find(p => p.type === 'timeZoneName')?.value ?? '';
 };
 </script>

@@ -20,7 +20,9 @@
 
     <!-- Listings -->
     <div v-else class="space-y-4">
-      <p class="text-sm font-bold text-slate-500 dark:text-slate-400 mb-4 uppercase tracking-wider">Found {{ flights.length }} flights for your journey</p>
+      <p class="text-sm font-bold text-slate-500 dark:text-slate-400 mb-4 uppercase tracking-wider" aria-live="polite">
+        Showing {{ flights.length }} of {{ total }} flights<span v-if="flights.length < total"> — some are hidden by your filters</span>
+      </p>
       <TransitionGroup 
         name="list" 
         tag="div" 
@@ -42,7 +44,9 @@ import type { Flight } from '~/types';
 
 defineProps<{
   flights: Flight[],
-  searched: boolean
+  searched: boolean,
+  /** Unfiltered result count, so hidden results are disclosed rather than silent. */
+  total: number
 }>();
 </script>
 
