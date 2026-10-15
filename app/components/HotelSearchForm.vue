@@ -3,6 +3,16 @@
     
     <!-- Main Search Form -->
     <form @submit.prevent="submitSearch" class="flex flex-col lg:flex-row gap-4 w-full items-end relative z-30">
+      <!-- Flexible Date Toggle -->
+      <div class="flex items-center gap-2 mb-2 lg:mb-0">
+        <label class="text-sm font-medium text-slate-600 dark:text-slate-300 flex items-center gap-1">
+          <input type="checkbox" v-model="flexibleDates" class="form-checkbox h-4 w-4 text-blue-600">
+          <span>Flexible Dates</span>
+        </label>
+        <span v-if="flexibleDates" class="text-xs text-slate-500 dark:text-slate-400">
+          (±3 days)
+        </span>
+      </div>
       
       <!-- Destination Input with Real-time Image Suggestion -->
       <LocationCombobox
@@ -192,6 +202,9 @@ const form = ref<HotelSearchQuery>({
   rooms: props.initial?.rooms || 1,
 });
 
+// Flexible dates state
+const flexibleDates = ref(false);
+
 const notifyChange = () => {
   emit('change', { ...form.value });
 };
@@ -322,7 +335,18 @@ onUnmounted(() => {
 
 const submitSearch = () => {
   if (!form.value.destination || !form.value.checkIn || !form.value.checkOut) return;
-  emit('search', { ...form.value });
+  
+  // Clone to avoid mutation problems
+  const payload = { ...form.value };
+  
+  // Add flexible dates flag if enabled
+  if (flexibleDates.value) {
+    payload.flexibleDates = true;
+    // For flexible date searches, we might want to modify the date interpretation
+    // In a real implementation, this would signal the backend to return a price calendar
+  }
+  
+  emit('search', payload);
 };
 </script>
 

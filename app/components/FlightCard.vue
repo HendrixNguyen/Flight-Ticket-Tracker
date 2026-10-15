@@ -68,22 +68,27 @@
     <div class="hidden sm:block w-px h-16 hairline-v mx-4"></div>
     <div class="sm:hidden hairline-h my-2"></div>
 
-    <!-- Price & Action -->
-    <div class="flex sm:flex-col items-center sm:items-end justify-between sm:justify-center gap-3 sm:w-1/5">
-      <div class="text-left sm:text-right">
-        <p class="text-xs text-slate-600 dark:text-slate-300 font-bold uppercase tracking-wider">Price per adult</p>
-        <p class="text-3xl font-black text-slate-900 dark:text-slate-100">{{ formatAmount(flight.price) }}</p>
-        <p class="text-[10px] font-semibold text-slate-600 dark:text-slate-400">{{ flight.currency }}</p>
-      </div>
-      <!-- The CTA is the one element on the card that must not be glass: a
-           translucent pane on a translucent pane collapses the label's
-           contrast, and this is the action the whole card exists to offer. A
-           solid accent fill stays legible over any cloud behind it, with a
-           luminance lift on hover instead of the old flip to pale blue. -->
-      <button type="button" class="cta bg-blue-600 text-white hover:bg-blue-500 active:bg-blue-700 dark:bg-blue-500 dark:text-white dark:hover:bg-blue-400 dark:active:bg-blue-600 px-6 py-2.5 rounded-xl font-bold w-full sm:w-auto text-center cursor-pointer">
-        Select
-      </button>
-    </div>
+     <!-- Price & Action -->
+     <div class="flex sm:flex-col items-center sm:items-end justify-between sm:justify-center gap-3 sm:w-1/5">
+       <div class="text-left sm:text-right">
+         <p class="text-xs text-slate-600 dark:text-slate-300 font-bold uppercase tracking-wider">Price per adult</p>
+         <p class="text-3xl font-black text-slate-900 dark:text-slate-100">{{ formatAmount(flight.price) }}</p>
+         <p class="text-[10px] font-semibold text-slate-600 dark:text-slate-400">{{ flight.currency }}</p>
+       </div>
+       <!-- The CTA is the one element on the card that must not be glass: a
+            translucent pane on a translucent pane collapses the label's
+            contrast, and this is the action the whole card exists to offer. A
+            solid accent fill stays legible over any cloud behind it, with a
+            luminance lift on hover instead of the old flip to pale blue. -->
+       <div class="flex flex-col gap-2">
+         <button type="button" class="cta bg-blue-600 text-white hover:bg-blue-500 active:bg-blue-700 dark:bg-blue-500 dark:text-white dark:hover:bg-blue-400 dark:active:bg-blue-600 px-6 py-2.5 rounded-xl font-bold w-full sm:w-auto text-center cursor-pointer">
+           Select
+         </button>
+         <button type="button" @click="saveToTrip" class="cta bg-green-600 text-white hover:bg-green-500 active:bg-green-700 dark:bg-green-500 dark:text-white dark:hover:bg-green-400 dark:active:bg-green-600 px-6 py-2.5 rounded-xl font-bold w-full sm:w-auto text-center cursor-pointer">
+           Save to Trip
+         </button>
+       </div>
+     </div>
 
   </div>
 </template>
@@ -92,12 +97,14 @@
 import { Plane } from 'lucide-vue-next';
 import type { Flight } from '~/types';
 import { useCurrency } from '~/composables/useCurrency';
+import { useTrips } from '~/composables/useTrips';
 
 const props = defineProps<{
   flight: Flight
 }>();
 
 const { formatAmount } = useCurrency();
+const { addFlightToTrip } = useTrips();
 
 const formatTime = (isoString: string) => {
   return new Intl.DateTimeFormat('en-US', {
@@ -135,6 +142,18 @@ const timeZone = (isoString: string): string => {
   if (Number.isNaN(date.getTime())) return '';
   const parts = new Intl.DateTimeFormat('en-US', { timeZoneName: 'short' }).formatToParts(date);
   return parts.find(p => p.type === 'timeZoneName')?.value ?? '';
+};
+
+/** Save flight to trip */
+const saveToTrip = async () => {
+  try {
+    // In a real implementation, we would show a trip selector dialog
+    // For now, we'll just add to a default trip or show a message
+    alert('Save to Trip functionality would show a trip selector here');
+    // const trip = await addFlightToTrip('trip-id', props.flight);
+  } catch (e) {
+    console.error('Failed to save flight to trip:', e);
+  }
 };
 </script>
 

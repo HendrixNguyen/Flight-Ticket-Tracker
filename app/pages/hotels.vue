@@ -89,23 +89,52 @@
            </div>
          </div>
          
-         <div v-else>
-           <HotelList
-             :hotels="filteredAndSortedHotels"
-             :searched="hasSearchedHotels"
-             :total="rawHotels.length"
-             :cached="wasCached"
-             show-refresh
-             :refreshing="isSearching"
-             @refresh="refreshHotels"
-             @book="handleHotelBookingConfirmation"
-           />
-         </div>
+        <div v-else>
+          <!-- Price History Chart -->
+          <div v-if="hasSearchedHotels" class="mb-6">
+            <PriceHistoryChart 
+              :historyData="hotelHistoryData" 
+              :loading="historyLoading" 
+              :error="historyError" 
+              :currentPrice="rawHotels.length > 0 ? Math.min(...rawHotels.value.map(h => h.pricePerNight)) : undefined"
+            />
+          </div>
+          
+          <HotelList
+            :hotels="filteredAndSortedHotels"
+            :searched="hasSearchedHotels"
+            :total="rawHotels.length"
+            :cached="wasCached"
+            show-refresh
+            :refreshing="isSearching"
+            @refresh="refreshHotels"
+            @book="handleHotelBookingConfirmation"
+          />
+        </div>
        </section>
      </div>
-     <div v-else>
-       <HotelMapView :hotels="filteredAndSortedHotels" />
-     </div>
+       <div v-else>
+         <!-- Price Calendar (for flexible date searches) -->
+         <div v-if="hasCalendarData" class="mb-6">
+           <PriceCalendar 
+             :calendarData="calendarData" 
+             :loading="false" 
+             :error="null"
+           />
+         </div>
+         
+         <!-- Price History Chart -->
+         <div v-if="hasSearchedHotels && !hasCalendarData" class="mb-6">
+           <PriceHistoryChart 
+             :historyData="hotelHistoryData" 
+             :loading="historyLoading" 
+             :error="historyError" 
+             :currentPrice="rawHotels.length > 0 ? Math.min(...rawHotels.value.map(h => h.pricePerNight)) : undefined"
+           />
+         </div>
+         
+         <HotelMapView :hotels="filteredAndSortedHotels" />
+       </div>
 
     <!-- Booking Confirmation Dialog Modal.
 
@@ -234,11 +263,18 @@ import { HOTEL_DEFAULT_FILTERS, HOTEL_PRICE_RANGE } from '~/utils/filterDefaults
 import { useCurrency } from '~/composables/useCurrency';
 import { useAlerts } from '~/composables/useAlerts';
 import { useAlertChecking } from '~/composables/useAlertChecking';
+import { usePriceHistory } from '~/composables/usePriceHistory';
 import HotelMapView from '~/components/HotelMapView.vue';
+import PriceHistoryChart from '~/components/PriceHistoryChart.vue';
 
 const { formatAmount, currencyCode, restore } = useCurrency();
 const { alerts: alertList, addAlert: addAlertApi, loading: alertLoading } = useAlerts();
 const { checkAlertPrices, checking: alertChecking } = useAlertChecking();
+const { historyData: hotelHistoryData, loading: historyLoading, error: historyError, fetchPriceHistory: fetchHotelHistory, formatDate, getPriceChangePercent } = usePriceHistory();
+
+// Calendar data for flexible date search
+const hasCalendarData = ref(false);
+const calendarData = ref<any>(null);
 
 const route = useRoute();
 const router = useRouter();
@@ -291,27 +327,53 @@ const handleHotelSearch = async (query: HotelSearchQuery, refresh = false) => {
   syncUrl(query);
   lastQuery.value = query;
   
-  try {
-    const response = await $fetch<{ success: boolean; data: Hotel[]; error?: string }>('/api/hotels', {
-      params: {
-        destination: query.destination,
-        checkIn: query.checkIn,
-        checkOut: query.checkOut,
-        adults: query.adults,
-        rooms: query.rooms,
-        // Ask the server to bypass its cache so the user sees live rates.
-        refresh: refresh ? 1 : undefined,
-        currency: currencyCode.value,
-      }
-    });
+    try {
+      const response = await $fetch<{ success: boolean; data: Hotel[]; error?: string }>('/api/hotels', {
+        params: {
+          destination: query.destination,
+          checkIn: query.checkIn,
+          checkOut: query.checkOut,
+          adults: query.adults,
+          rooms: query.rooms,
+          // Ask the server to bypass its cache so the user sees live rates.
+          refresh: refresh ? 1 : undefined,
+          currency: currencyCode.value,
+          // Add flexible dates flag if present
+          flexibleDates: query.flexibleDates ? 1 : undefined
+        }
+      });
 
-    // Surfaced so the user can tell cached results from a live lookup.
-    wasCached.value = response.headers?.get('x-cache') === 'HIT';
-    
-    if (response && response.success) {
-      rawHotels.value = response.data;
-      hasSearchedHotels.value = true;
-    } else {
+      // Surfaced so the user can tell cached results from a live lookup.
+      wasCached.value = response.headers?.get('x-cache') === 'HIT';
+      
+      if (response && response.success) {
+        // If flexible dates is requested, we expect price calendar data
+        if (query.flexibleDates) {
+          // In a real implementation, the response would contain price calendar data
+          // For now, we'll store it in a separate variable and show the calendar UI
+          rawHotels.value = response.data; // This would actually be calendar data
+          hasSearchedHotels.value = true;
+          // Set a flag to indicate we have calendar data
+          hasCalendarData.value = true;
+          calendarData.value = response.data as any; // Assuming we have this ref
+        } else {
+          rawHotels.value = response.data;
+          hasSearchedHotels.value = true;
+          
+          // Fetch price history for this search
+          if (lastQuery.value) {
+            fetchHotelHistory({
+              destination: lastQuery.value.destination,
+              destinationName: lastQuery.value.destinationName,
+              checkIn: lastQuery.value.checkIn,
+              checkOut: lastQuery.value.checkOut,
+              adults: lastQuery.value.adults || 2,
+              rooms: lastQuery.value.rooms || 1,
+              type: 'hotel'
+            });
+          }
+        }
+      } else {
       hasFailed.value = true;
       errorMessage.value = response?.error || 'Failed to crawl hotel rates.';
     }

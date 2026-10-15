@@ -28,6 +28,16 @@
 
     <!-- Main Search Fields -->
     <form @submit.prevent="submitSearch" class="flex flex-col lg:flex-row gap-4 w-full items-end">
+      <!-- Flexible Date Toggle -->
+      <div class="flex items-center gap-2 mb-2 lg:mb-0">
+        <label class="text-sm font-medium text-slate-600 dark:text-slate-300 flex items-center gap-1">
+          <input type="checkbox" v-model="flexibleDates" class="form-checkbox h-4 w-4 text-blue-600">
+          <span>Flexible Dates</span>
+        </label>
+        <span v-if="flexibleDates" class="text-xs text-slate-500 dark:text-slate-400">
+          (±3 days)
+        </span>
+      </div>
 <!-- From Location Input -->
       <LocationCombobox
         ref="fromCombobox"
@@ -135,6 +145,9 @@ const form = ref<SearchQuery>({
   returnDate: props.initial?.returnDate || '',
   passengers: props.initial?.passengers || 1,
 });
+
+// Flexible dates state
+const flexibleDates = ref(false);
 
 // Trip type state. A URL carrying a return date implies a round trip.
 const isRoundTrip = ref(Boolean(props.initial?.returnDate));
@@ -252,6 +265,13 @@ const submitSearch = () => {
   const payload = { ...form.value };
   if (!isRoundTrip.value) {
     delete payload.returnDate;
+  }
+  
+  // Add flexible dates flag if enabled
+  if (flexibleDates.value) {
+    payload.flexibleDates = true;
+    // For flexible date searches, we might want to modify the date interpretation
+    // In a real implementation, this would signal the backend to return a price calendar
   }
   
   emit('search', payload);

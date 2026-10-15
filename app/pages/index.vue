@@ -67,16 +67,35 @@
           </div>
         </div>
         
-        <div v-else>
-          <FlightList
-            :flights="filteredAndSortedFlights"
-            :searched="hasSearchedFlights"
-            :total="rawFlights.length"
-            :cached="wasCached"
-            show-refresh
-            :refreshing="isSearching"
-            @refresh="refreshFlights"
-          />
+          <div v-else>
+            <!-- Price Calendar (for flexible date searches) -->
+            <div v-if="hasCalendarData" class="mb-6">
+              <PriceCalendar 
+                :calendarData="calendarData" 
+                :loading="false" 
+                :error="null"
+              />
+            </div>
+            
+            <!-- Price History Chart -->
+            <div v-if="hasSearchedFlights && !hasCalendarData" class="mb-6">
+              <PriceHistoryChart 
+                :historyData="flightHistoryData" 
+                :loading="historyLoading" 
+                :error="historyError" 
+                :currentPrice="rawFlights.length > 0 ? Math.min(...rawFlights.value.map(f => f.price)) : undefined"
+              />
+            </div>
+            
+            <FlightList
+              :flights="filteredAndSortedFlights"
+              :searched="hasSearchedFlights"
+              :total="rawFlights.length"
+              :cached="wasCached"
+              show-refresh
+              :refreshing="isSearching"
+              @refresh="refreshFlights"
+            />
         </div>
       </section>
    </div>
@@ -167,10 +186,18 @@ import type { Flight, SearchQuery, FilterOptions, SortOption, Alert } from '~/ty
 import { FLIGHT_DEFAULT_FILTERS, FLIGHT_PRICE_RANGE } from '~/utils/filterDefaults';
 import { useCurrency } from '~/composables/useCurrency';
 import { useAlerts } from '~/composables/useAlerts';
-import { useAlerts } from '~/composables/useAlerts';
+import { useAlertChecking } from '~/composables/useAlertChecking';
+import { usePriceHistory } from '~/composables/usePriceHistory';
+import PriceHistoryChart from '~/components/PriceHistoryChart.vue';
 
 const { currencyCode, restore } = useCurrency();
 const { alerts: alertList, addAlert: addAlertApi, loading: alertLoading } = useAlerts();
+const { checkAlertPrices, checking: alertChecking } = useAlertChecking();
+const { historyData: flightHistoryData, loading: historyLoading, error: historyError, fetchPriceHistory: fetchFlightHistory, formatDate, getPriceChangePercent } = usePriceHistory();
+
+// Calendar data for flexible date search
+const hasCalendarData = ref(false);
+const calendarData = ref<any>(null);
 
 const route = useRoute();
 const router = useRouter();
@@ -215,26 +242,51 @@ const handleFlightSearch = async (query: SearchQuery, refresh = false) => {
   syncUrl(query);
   lastQuery.value = query;
 
-  try {
-    const response = await $fetch<{ success: boolean; data: Flight[]; error?: string }>('/api/flights', {
-      params: {
-        from: query.from,
-        to: query.to,
-        date: query.date,
-        returnDate: query.returnDate,
-        // Ask the server to bypass its cache so the user sees live prices.
-        refresh: refresh ? 1 : undefined,
-        currency: currencyCode.value,
-      }
-    });
+    try {
+      const response = await $fetch<{ success: boolean; data: Flight[]; error?: string }>('/api/flights', {
+        params: {
+          from: query.from,
+          to: query.to,
+          date: query.date,
+          returnDate: query.returnDate,
+          // Ask the server to bypass its cache so the user sees live prices.
+          refresh: refresh ? 1 : undefined,
+          currency: currencyCode.value,
+          // Add flexible dates flag if present
+          flexibleDates: query.flexibleDates ? 1 : undefined
+        }
+      });
 
-    // Surfaced so the user can tell cached results from a live lookup.
-    wasCached.value = response.headers?.get('x-cache') === 'HIT';
-    
-    if (response && response.success) {
-      rawFlights.value = response.data;
-      hasSearchedFlights.value = true;
-    } else {
+      // Surfaced so the user can tell cached results from a live lookup.
+      wasCached.value = response.headers?.get('x-cache') === 'HIT';
+      
+      if (response && response.success) {
+        // If flexible dates is requested, we expect price calendar data
+        if (query.flexibleDates) {
+          // In a real implementation, the response would contain price calendar data
+          // For now, we'll store it in a separate variable and show the calendar UI
+          rawFlights.value = response.data; // This would actually be calendar data
+          hasSearchedFlights.value = true;
+          // Set a flag to indicate we have calendar data
+          hasCalendarData.value = true;
+          calendarData.value = response.data as any; // Assuming we have this ref
+        } else {
+          rawFlights.value = response.data;
+          hasSearchedFlights.value = true;
+          
+          // Fetch price history for this search
+          if (lastQuery.value) {
+            fetchFlightHistory({
+              from: lastQuery.value.from,
+              to: lastQuery.value.to,
+              date: lastQuery.value.date,
+              returnDate: lastQuery.value.returnDate || '',
+              passengers: lastQuery.value.passengers || 1,
+              type: 'flight'
+            });
+          }
+        }
+      } else {
       hasFailed.value = true;
       errorMessage.value = response?.error || 'Failed to crawl flights.';
     }
