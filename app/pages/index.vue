@@ -20,6 +20,16 @@
 
     <!-- Active Search Grid -->
     <div class="flex flex-col lg:flex-row gap-8 relative z-10">
+      <!-- Set Price Alert Button -->
+      <div class="w-full mb-4 lg:mb-0">
+        <button
+          @click="openAlertModal"
+          class="w-full px-4 py-2 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
+          :disabled="alertLoading || !hasSearchedFlights"
+        >
+          Set Price Alert
+        </button>
+      </div>
       
       <!-- Sidebar Filters -->
       <aside class="w-full lg:w-1/4">
@@ -69,19 +79,98 @@
           />
         </div>
       </section>
+   </div>
+ </div>
+</div>
+
+<!-- Alert Modal -->
+<div v-show="showAlertModal" class="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-slate-900/45 dark:bg-slate-950/70 backdrop-blur-md">
+  <div class="glass-elevated glass-grain rounded-3xl p-6 max-w-md w-full relative select-none">
+    <div class="flex justify-between items-start mb-4">
+      <h3 class="text-xl font-black text-slate-900 dark:text-slate-100">Set Price Alert</h3>
+      <button @click="closeAlertModal" class="text-slate-500 hover:text-slate-700">
+        <CircleAlert class="w-5 h-5" />
+      </button>
     </div>
+    <form @submit.prevent="saveAlert">
+      <div class="mb-4">
+        <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+          Alert Type
+        </label>
+        <div class="flex space-x-4">
+          <label class="flex items-center space-x-2 text-sm font-medium text-slate-700 dark:text-slate-300">
+            <input
+              type="radio"
+              value="flight"
+              v-model="alertType"
+              class="form-radio h-4 w-4 text-blue-600"
+            />
+            Flight
+          </label>
+          <label class="flex items-center space-x-2 text-sm font-medium text-slate-700 dark:text-slate-300">
+            <input
+              type="radio"
+              value="hotel"
+              v-model="alertType"
+              class="form-radio h-4 w-4 text-blue-600"
+            />
+            Hotel
+          </label>
+        </div>
+      </div>
+      <div class="mb-4">
+        <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+          Threshold Price ({{ currencyCode.value }})
+        </label>
+        <input
+          type="number"
+          v-model.number="alertThreshold"
+          min="0"
+          step="1"
+          class="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          placeholder="Enter threshold price"
+        />
+      </div>
+      <div class="mb-4">
+        <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+          Current Search
+        </label>
+        <div class="text-sm text-slate-500 dark:text-slate-400">
+          {{ alertType.value === 'flight' ? `From: ${lastQuery.value?.from || ''} To: ${lastQuery.value?.to || ''}` : `Destination: ${lastQuery.value?.destination || ''}` }}
+        </div>
+      </div>
+      <div class="flex justify-end space-x-3">
+        <button
+          @click="closeAlertModal"
+          class="px-4 py-2 bg-slate-200 dark:bg-slate-700 text-slate-900 dark:text-slate-100 rounded-lg hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors"
+        >
+          Cancel
+        </button>
+        <button
+          type="submit"
+          class="px-4 py-2 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors"
+          :disabled="alertLoading"
+        >
+          Save Alert
+        </button>
+      </div>
+    </form>
   </div>
+</div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useRoute, useRouter } from '#imports';
 import { CircleAlert } from 'lucide-vue-next';
-import type { Flight, SearchQuery, FilterOptions, SortOption } from '~/types';
+import type { Flight, SearchQuery, FilterOptions, SortOption, Alert } from '~/types';
 import { FLIGHT_DEFAULT_FILTERS, FLIGHT_PRICE_RANGE } from '~/utils/filterDefaults';
 import { useCurrency } from '~/composables/useCurrency';
+import { useAlerts } from '~/composables/useAlerts';
+import { useAlerts } from '~/composables/useAlerts';
 
 const { currencyCode, restore } = useCurrency();
+const { alerts: alertList, addAlert: addAlertApi, loading: alertLoading } = useAlerts();
 
 const route = useRoute();
 const router = useRouter();
@@ -269,6 +358,43 @@ const filteredAndSortedFlights = computed(() => {
 
   return result;
 });
+
+// Alert modal state
+const showAlertModal = ref(false);
+const alertThreshold = ref(0);
+const alertType = ref<'flight' | 'hotel'>('flight');
+
+const openAlertModal = () => {
+  alertType.value = 'flight';
+  // Set threshold to the lowest price in results or a default
+  if (filteredAndSortedFlights.value.length > 0) {
+    alertThreshold.value = Math.min(...filteredAndSortedFlights.value.map(f => f.price));
+  } else {
+    alertThreshold.value = 100; // default
+  }
+  showAlertModal.value = true;
+};
+
+const closeAlertModal = () => {
+  showAlertModal.value = false;
+};
+
+const saveAlert = async () => {
+  if (!lastQuery.value) return;
+  try {
+    await addAlertApi({
+      type: alertType.value,
+      searchQuery: lastQuery.value as any, // TODO: type properly
+      thresholdPrice: alertThreshold.value,
+      currency: currencyCode.value,
+      active: true,
+    });
+    closeAlertModal();
+    // Optionally show a success toast
+  } catch (e) {
+    console.error('Failed to save alert:', e);
+  }
+};
 </script>
 
 <style scoped>

@@ -18,59 +18,94 @@
         />
     </div>
 
-    <!-- Active Search Grid -->
-    <div class="flex flex-col lg:flex-row gap-8 relative z-10">
-      
-      <!-- Sidebar Filters -->
-      <aside class="w-full lg:w-1/4">
-          <ActiveFilterChips :chips="activeChips" @remove="removeFilter" />
-          <FilterSheet
-            title="Filter stays"
-            :count="activeChips.length"
-            :result-count="filteredAndSortedHotels.length"
-          >
-            <HotelFilterSidebar
-              :active-filters="hotelFilters"
-              @update:filters="updateHotelFilters"
-              @update:sort="updateHotelSort"
-            />
-          </FilterSheet>
-        </aside>
+<!-- View Tabs -->
+<div class="flex justify-end mb-6">
+  <button
+    @click="viewType = 'list'"
+    :class="[
+      'px-4 py-2 text-sm font-medium',
+      viewType === 'list' ? 'bg-blue-600 text-white' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300',
+    ]"
+  >
+    List View
+  </button>
+  <button
+    @click="viewType = 'map'"
+    :class="[
+      'px-4 py-2 text-sm font-medium ml-2',
+      viewType === 'map' ? 'bg-blue-600 text-white' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300',
+    ]"
+  >
+    Map View
+  </button>
+</div>
 
-      <!-- Listings Content Section -->
-      <section class="w-full lg:w-3/4">
-        <div v-if="isSearching" class="flex flex-col justify-center items-center py-20 gap-4">
-          <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-          <p class="text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-widest animate-pulse">Crawling real-time hotel rates...</p>
-        </div>
+     <!-- Active Search Grid -->
+     <div v-if="viewType === 'list'" class="flex flex-col lg:flex-row gap-8 relative z-10">
+       <!-- Set Price Alert Button -->
+       <div class="w-full mb-4 lg:mb-0">
+         <button
+           @click="openAlertModal"
+           class="w-full px-4 py-2 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
+           :disabled="alertLoading || !hasSearchedHotels"
+         >
+           Set Price Alert
+         </button>
+       </div>
+       
+       <!-- Sidebar Filters -->
+       <aside class="w-full lg:w-1/4">
+         <ActiveFilterChips :chips="activeChips" @remove="removeFilter" />
+         <FilterSheet
+           title="Filter stays"
+           :count="activeChips.length"
+           :result-count="filteredAndSortedHotels.length"
+         >
+           <HotelFilterSidebar
+             :active-filters="hotelFilters"
+             @update:filters="updateHotelFilters"
+             @update:sort="updateHotelSort"
+           />
+         </FilterSheet>
+       </aside>
 
-        <!-- Deliberately NOT `.glass`: a neutral pane here would read as an empty
-             result, and this state means the opposite. It keeps the same
-             translucency and blur so it still belongs to the atmosphere, but the
-             fill, the border and the shadow are all red, and the icon plus the
-             heading carry the meaning without relying on colour alone. -->
-        <div v-else-if="hasFailed" class="error-panel p-4 rounded-2xl flex items-start gap-3 text-red-700 dark:text-red-300">
-          <CircleAlert class="w-5 h-5 flex-none mt-0.5" aria-hidden="true" />
-          <div class="flex flex-col gap-1">
-            <h4 class="font-bold text-sm">Search Interrupted</h4>
-            <p class="text-xs">{{ errorMessage || 'An unexpected API connection error occurred. Please try again.' }}</p>
-          </div>
-        </div>
-        
-        <div v-else>
-          <HotelList
-            :hotels="filteredAndSortedHotels"
-            :searched="hasSearchedHotels"
-            :total="rawHotels.length"
-            :cached="wasCached"
-            show-refresh
-            :refreshing="isSearching"
-            @refresh="refreshHotels"
-            @book="handleHotelBookingConfirmation"
-          />
-        </div>
-      </section>
-    </div>
+       <!-- Listings Content Section -->
+       <section class="w-full lg:w-3/4">
+         <div v-if="isSearching" class="flex flex-col justify-center items-center py-20 gap-4">
+           <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+           <p class="text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-widest animate-pulse">Crawling real-time hotel rates...</p>
+         </div>
+
+         <!-- Deliberately NOT `.glass`: a neutral pane here would read as an empty
+              result, and this state means the opposite. It keeps the same
+              translucency and blur so it still belongs to the atmosphere, but the
+              fill, the border and the shadow are all red, and the icon plus the
+              heading carry the meaning without relying on colour alone. -->
+         <div v-else-if="hasFailed" class="error-panel p-4 rounded-2xl flex items-start gap-3 text-red-700 dark:text-red-300">
+           <CircleAlert class="w-5 h-5 flex-none mt-0.5" aria-hidden="true" />
+           <div class="flex flex-col gap-1">
+             <h4 class="font-bold text-sm">Search Interrupted</h4>
+             <p class="text-xs">{{ errorMessage || 'An unexpected API connection error occurred. Please try again.' }}</p>
+           </div>
+         </div>
+         
+         <div v-else>
+           <HotelList
+             :hotels="filteredAndSortedHotels"
+             :searched="hasSearchedHotels"
+             :total="rawHotels.length"
+             :cached="wasCached"
+             show-refresh
+             :refreshing="isSearching"
+             @refresh="refreshHotels"
+             @book="handleHotelBookingConfirmation"
+           />
+         </div>
+       </section>
+     </div>
+     <div v-else>
+       <HotelMapView :hotels="filteredAndSortedHotels" />
+     </div>
 
     <!-- Booking Confirmation Dialog Modal.
 
@@ -110,19 +145,100 @@
           </div>
         </div>
       </Transition>
-    </Teleport>
+     </Teleport>
+   </div>
+</div>
+
+<!-- Alert Modal -->
+<div v-show="showAlertModal" class="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-slate-900/45 dark:bg-slate-950/70 backdrop-blur-md">
+  <div class="glass-elevated glass-grain rounded-3xl p-6 max-w-md w-full relative select-none">
+    <div class="flex justify-between items-start mb-4">
+      <h3 class="text-xl font-black text-slate-900 dark:text-slate-100">Set Price Alert</h3>
+      <button @click="closeAlertModal" class="text-slate-500 hover:text-slate-700">
+        <CircleAlert class="w-5 h-5" />
+      </button>
+    </div>
+    <form @submit.prevent="saveAlert">
+      <div class="mb-4">
+        <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+          Alert Type
+        </label>
+        <div class="flex space-x-4">
+          <label class="flex items-center space-x-2 text-sm font-medium text-slate-700 dark:text-slate-300">
+            <input
+              type="radio"
+              value="flight"
+              v-model="alertType"
+              class="form-radio h-4 w-4 text-blue-600"
+            />
+            Flight
+          </label>
+          <label class="flex items-center space-x-2 text-sm font-medium text-slate-700 dark:text-slate-300">
+            <input
+              type="radio"
+              value="hotel"
+              v-model="alertType"
+              class="form-radio h-4 w-4 text-blue-600"
+            />
+            Hotel
+          </label>
+        </div
+      </div>
+      <div class="mb-4">
+        <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+          Threshold Price ({{ currencyCode.value }})
+        </label>
+        <input
+          type="number"
+          v-model.number="alertThreshold"
+          min="0"
+          step="1"
+          class="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          placeholder="Enter threshold price"
+        />
+      </div>
+      <div class="mb-4">
+        <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+          Current Search
+        </label>
+        <div class="text-sm text-slate-500 dark:text-slate-400">
+          {{ alertType.value === 'flight' ? `From: ${lastQuery.value?.destination || ''} To: ${lastQuery.value?.destinationName || ''}` : `Destination: ${lastQuery.value?.destination || ''}` }}
+        </div>
+      </div>
+      <div class="flex justify-end space-x-3">
+        <button
+          @click="closeAlertModal"
+          class="px-4 py-2 bg-slate-200 dark:bg-slate-700 text-slate-900 dark:text-slate-100 rounded-lg hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors"
+        >
+          Cancel
+        </button>
+        <button
+          type="submit"
+          class="px-4 py-2 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors"
+          :disabled="alertLoading"
+        >
+          Save Alert
+        </button>
+      </div>
+    </form>
   </div>
+</div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useRoute, useRouter } from '#imports';
 import { CircleAlert } from 'lucide-vue-next';
-import type { Hotel, HotelSearchQuery, HotelFilterOptions } from '~/types';
+import type { Hotel, HotelSearchQuery, HotelFilterOptions, Alert } from '~/types';
 import { HOTEL_DEFAULT_FILTERS, HOTEL_PRICE_RANGE } from '~/utils/filterDefaults';
 import { useCurrency } from '~/composables/useCurrency';
+import { useAlerts } from '~/composables/useAlerts';
+import { useAlertChecking } from '~/composables/useAlertChecking';
+import HotelMapView from '~/components/HotelMapView.vue';
 
 const { formatAmount, currencyCode, restore } = useCurrency();
+const { alerts: alertList, addAlert: addAlertApi, loading: alertLoading } = useAlerts();
+const { checkAlertPrices, checking: alertChecking } = useAlertChecking();
 
 const route = useRoute();
 const router = useRouter();
@@ -166,6 +282,7 @@ const lastQuery = ref<HotelSearchQuery | null>(null);
 
 const showBookingModal = ref(false);
 const selectedHotel = ref<Hotel | null>(null);
+const viewType = ref<'list' | 'map'>('list');
 
 // Hotel Search triggers
 const handleHotelSearch = async (query: HotelSearchQuery, refresh = false) => {
@@ -307,6 +424,41 @@ onMounted(() => {
 const handleHotelBookingConfirmation = (hotel: Hotel) => {
   selectedHotel.value = hotel;
   showBookingModal.value = true;
+};
+const showAlertModal = ref(false);
+const alertThreshold = ref(0);
+const alertType = ref<'flight' | 'hotel'>('hotel');
+
+const openAlertModal = () => {
+  alertType.value = 'hotel';
+  // Set threshold to the lowest price in results or a default
+  if (filteredAndSortedHotels.value.length > 0) {
+    alertThreshold.value = Math.min(...filteredAndSortedHotels.value.map(h => h.pricePerNight));
+  } else {
+    alertThreshold.value = 50; // default for hotels
+  }
+  showAlertModal.value = true;
+};
+
+const closeAlertModal = () => {
+  showAlertModal.value = false;
+};
+
+const saveAlert = async () => {
+  if (!lastQuery.value) return;
+  try {
+    await addAlertApi({
+      type: alertType.value,
+      searchQuery: lastQuery.value as any, // TODO: type properly
+      thresholdPrice: alertThreshold.value,
+      currency: currencyCode.value,
+      active: true,
+    });
+    closeAlertModal();
+    // Optionally show a success toast
+  } catch (e) {
+    console.error('Failed to save alert:', e);
+  }
 };
 </script>
 

@@ -100,3 +100,17 @@ export type ComboboxSuggestion = (LocationSuggestion | HotelAutocompleteSuggesti
   description?: string;
 };
 
+/** Price alert for flights or hotels */
+export interface Alert {
+  id: string;
+  type: 'flight' | 'hotel';
+  searchQuery: FlightSearchQuery | HotelSearchQuery;
+  thresholdPrice: number;
+  currency: string; // currency for the threshold
+  createdAt: string; // ISO string
+  active: boolean;
+}
+
+/** Extended search query for alerts - we reuse the existing ones */
+export type AlertSearchQuery = FlightSearchQuery | HotelSearchQuery;
+
