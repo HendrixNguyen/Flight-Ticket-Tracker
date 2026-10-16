@@ -88,7 +88,7 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import type { PriceCalendar } from '~/types';
-import { formatAmount } from '~/composables/useCurrency';
+import { useCurrency } from '~/composables/useCurrency';
 
 const props = defineProps<{
   calendarData: PriceCalendar | null;
@@ -97,6 +97,7 @@ const props = defineProps<{
 }>;
 
 const selectedDate = ref<string | null>(null);
+const { formatAmount } = useCurrency();
 
 const formatDate = (dateString: string): string => {
   const date = new Date(dateString);

@@ -175,8 +175,6 @@
         </div>
       </Transition>
      </Teleport>
-   </div>
-</div>
 
 <!-- Alert Modal -->
 <div v-show="showAlertModal" class="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-slate-900/45 dark:bg-slate-950/70 backdrop-blur-md">
@@ -211,7 +209,7 @@
             />
             Hotel
           </label>
-        </div
+        </div>
       </div>
       <div class="mb-4">
         <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
@@ -251,6 +249,7 @@
       </div>
     </form>
   </div>
+</div>
 </div>
 </template>
 

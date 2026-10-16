@@ -100,7 +100,6 @@
       </section>
    </div>
  </div>
-</div>
 
 <!-- Alert Modal -->
 <div v-show="showAlertModal" class="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-slate-900/45 dark:bg-slate-950/70 backdrop-blur-md">
