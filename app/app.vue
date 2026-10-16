@@ -71,8 +71,21 @@
                 >
                   Hotels
                 </NuxtLink>
-              </li>
-            </ul>
+               </li>
+               <li>
+                 <NuxtLink
+                   to="/alerts"
+                   class="pill outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 dark:focus-visible:outline-blue-300 rounded-full px-3.5 py-1.5 transition-colors duration-200 cursor-pointer select-none"
+                   :class="[
+                     route.path === '/alerts'
+                       ? 'bg-blue-600 text-white font-black shadow-md shadow-blue-500/25'
+                       : 'glass glass-hover text-slate-600 dark:text-slate-300 font-semibold hover:text-slate-900 dark:hover:text-white',
+                   ]"
+                 >
+                   Alerts
+                 </NuxtLink>
+               </li>
+             </ul>
           </nav>
           <div class="flex items-center gap-2 sm:gap-3">
             <CurrencySelector @change="handleCurrencyChange" />

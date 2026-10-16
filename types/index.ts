@@ -100,3 +100,74 @@ export type ComboboxSuggestion = (LocationSuggestion | HotelAutocompleteSuggesti
   description?: string;
 };
 
+/** Price alert for flights or hotels */
+export interface Alert {
+  id: string;
+  type: 'flight' | 'hotel';
+  searchQuery: FlightSearchQuery | HotelSearchQuery;
+  thresholdPrice: number;
+  currency: string; // currency for the threshold
+  createdAt: string; // ISO string
+  active: boolean;
+}
+
+/** Extended search query for alerts - we reuse the existing ones */
+export type AlertSearchQuery = FlightSearchQuery | HotelSearchQuery;
+
+/** Historical price data point */
+export interface PriceHistoryPoint {
+  date: string; // ISO date string
+  price: number;
+}
+
+/** Historical price data for a search */
+export interface PriceHistoryData {
+  points: PriceHistoryPoint[];
+  averagePrice: number;
+  minPrice: number;
+  maxPrice: number;
+  volatility: number; // Standard deviation of prices
+  trend: 'up' | 'down' | 'stable'; // Simple trend indicator
+  prediction: string; // Human-readable prediction
+}
+
+/** Price calendar data for flexible date search */
+export interface PriceCalendarDay {
+  date: string; // ISO date string
+  price: number;
+  available: boolean;
+}
+
+export interface PriceCalendarWeek {
+  days: PriceCalendarDay[];
+}
+
+export interface PriceCalendar {
+  weeks: PriceCalendarWeek[];
+  minPrice: number;
+  maxPrice: number;
+  averagePrice: number;
+  cheapestDate: string; // ISO date string of the cheapest day
+  mostExpensiveDate: string; // ISO date string of the most expensive day
+}
+
+/** Extended search query for alerts - we reuse the existing ones */
+export type AlertSearchQuery = FlightSearchQuery | HotelSearchQuery;
+
+/** Trip data model for saved trip plans */
+export interface Trip {
+  id: string;
+  name: string;
+  flights: Flight[];
+  hotels: Hotel[];
+  notes?: string;
+  createdAt: string; // ISO string
+  updatedAt: string; // ISO string
+}
+
+/** Trip item (flight or hotel) for adding to a trip */
+export interface TripItem {
+  type: 'flight' | 'hotel';
+  item: Flight | Hotel;
+}
+

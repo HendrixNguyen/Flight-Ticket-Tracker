@@ -101,16 +101,21 @@
           </p>
         </div>
 
-        <!-- Solid accent, for the same reason as the flight CTA: this is the
-             card's primary action and a translucent pane here would stack two
-             windows between the label and the canvas. -->
-        <button 
-          type="button"
-          @click="handleBooking" 
-          class="cta bg-blue-600 text-white hover:bg-blue-500 active:bg-blue-700 dark:bg-blue-500 dark:text-white dark:hover:bg-blue-400 dark:active:bg-blue-600 px-5 py-2.5 rounded-xl font-bold text-sm cursor-pointer w-full md:w-auto text-center"
-        >
-          Book Room
-        </button>
+         <!-- Solid accent, for the same reason as the flight CTA: this is the
+              card's primary action and a translucent pane here would stack two
+              windows between the label and the canvas. -->
+         <div class="flex flex-col gap-2">
+           <button 
+             type="button"
+             @click="handleBooking" 
+             class="cta bg-blue-600 text-white hover:bg-blue-500 active:bg-blue-700 dark:bg-blue-500 dark:text-white dark:hover:bg-blue-400 dark:active:bg-blue-600 px-5 py-2.5 rounded-xl font-bold text-sm cursor-pointer w-full md:w-auto text-center"
+           >
+             Book Room
+           </button>
+           <button type="button" @click="saveToTrip" class="cta bg-green-600 text-white hover:bg-green-500 active:bg-green-700 dark:bg-green-500 dark:text-white dark:hover:bg-green-400 dark:active:bg-green-600 px-5 py-2.5 rounded-xl font-bold text-sm cursor-pointer w-full md:w-auto text-center">
+             Save to Trip
+           </button>
+         </div>
       </div>
     </div>
   </div>
@@ -120,8 +125,10 @@
 import { Star, MapPin } from 'lucide-vue-next';
 import type { Hotel } from '~/types';
 import { useCurrency } from '~/composables/useCurrency';
+import { useTrips } from '~/composables/useTrips';
 
 const { formatAmount } = useCurrency();
+const { addHotelToTrip } = useTrips();
 
 const props = defineProps<{
   hotel: Hotel;
@@ -133,6 +140,18 @@ const emit = defineEmits<{
 
 const handleBooking = () => {
   emit('book', props.hotel);
+};
+
+/** Save hotel to trip */
+const saveToTrip = async () => {
+  try {
+    // In a real implementation, we would show a trip selector dialog
+    // For now, we'll just add to a default trip or show a message
+    alert('Save to Trip functionality would show a trip selector here');
+    // const trip = await addHotelToTrip('trip-id', props.hotel);
+  } catch (e) {
+    console.error('Failed to save hotel to trip:', e);
+  }
 };
 </script>
 
