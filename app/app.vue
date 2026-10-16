@@ -97,37 +97,6 @@
 
     <!-- Main Content Grid -->
     <main class="flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full relative z-10">
-      <!-- Premium Glassmorphic Switcher Tab pills. The active state uses the
-           accent fill plus `font-black` and a coloured shadow, so selection is
-           carried by colour and weight -- never by an alpha difference alone,
-           which is invisible to anyone who cannot separate the two fills. -->
-      <div class="flex items-center gap-2 mb-6">
-        <NuxtLink
-          to="/"
-          class="pill outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 dark:focus-visible:outline-blue-300 flex items-center gap-2 px-5 py-2.5 rounded-full text-sm transition-colors duration-200 cursor-pointer select-none"
-          :class="[
-            route.path === '/'
-              ? 'bg-blue-600 text-white font-black shadow-md shadow-blue-500/25'
-              : 'glass glass-hover text-slate-600 dark:text-slate-300 font-bold hover:text-slate-900 dark:hover:text-white',
-          ]"
-        >
-          <Plane class="w-4 h-4" />
-          Flight Finder
-        </NuxtLink>
-        <NuxtLink
-          to="/hotels"
-          class="pill outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 dark:focus-visible:outline-blue-300 flex items-center gap-2 px-5 py-2.5 rounded-full text-sm transition-colors duration-200 cursor-pointer select-none"
-          :class="[
-            route.path === '/hotels'
-              ? 'bg-blue-600 text-white font-black shadow-md shadow-blue-500/25'
-              : 'glass glass-hover text-slate-600 dark:text-slate-300 font-bold hover:text-slate-900 dark:hover:text-white',
-          ]"
-        >
-          <Building class="w-4 h-4" />
-          Hotel Finder
-        </NuxtLink>
-      </div>
-
       <!-- Route View Slot -->
       <NuxtPage />
     </main>
