@@ -1,4 +1,4 @@
-import type { FilterOptions, HotelFilterOptions } from '~/types';
+import type { FilterOptions, HotelFilterOptions } from '~~/types';
 
 /** Slider bounds and defaults, shared by each page and its sidebar so that
  *  "Reset" restores the same values the page initialises with.
@@ -9,7 +9,7 @@ export const FLIGHT_PRICE_RANGE = { min: 100, max: 2000, step: 50 } as const;
 export const FLIGHT_DEFAULT_FILTERS: FilterOptions = {
   maxPrice: FLIGHT_PRICE_RANGE.max,
   airlines: [],
-  maxStops: 2,
+  maxStops: 99,
 };
 
 export const HOTEL_PRICE_RANGE = { min: 50, max: 1000, step: 25 } as const;

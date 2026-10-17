@@ -36,7 +36,7 @@ export const CURRENCIES: CurrencyOption[] = [
 
 const STORAGE_KEY = 'skycrawler-currency';
 const DEFAULT_CURRENCY = 'USD';
-const FALLBACK = CURRENCIES[0];
+const FALLBACK = CURRENCIES[0]!;
 
 const isSupported = (code: string): boolean => CURRENCIES.some((c) => c.code === code);
 
@@ -46,8 +46,10 @@ export const useCurrency = () => {
 
   /** Apply a previously stored preference. Client-only; call once on mount. */
   const restore = () => {
-    const stored = window.localStorage?.getItem(STORAGE_KEY);
-    if (stored && isSupported(stored)) currencyCode.value = stored;
+    try {
+      const stored = window.localStorage.getItem(STORAGE_KEY);
+      if (stored && isSupported(stored)) currencyCode.value = stored;
+    } catch { /* Browser storage may be unavailable. Keep the default. */ }
   };
 
   const currency = computed<CurrencyOption>(
@@ -68,7 +70,8 @@ export const useCurrency = () => {
 
   /** Formats an amount with the active currency. Zero-decimal currencies
    *  (JPY, VND, KRW) get no decimal places, where cents are meaningless. */
-  const formatAmount = (amount: number): string => {
+  const formatAmount = (amount: number, code = currencyCode.value): string => {
+    if (code !== currencyCode.value) return new Intl.NumberFormat('en-US', { style: 'currency', currency: isSupported(code) ? code : DEFAULT_CURRENCY }).format(Number.isFinite(amount) ? amount : 0);
     if (!Number.isFinite(amount)) return joinSymbol(0);
 
     const zeroDecimal = ['JPY', 'VND', 'KRW'].includes(currency.value.code);
@@ -80,7 +83,7 @@ export const useCurrency = () => {
   const setCurrency = (code: string) => {
     if (!isSupported(code)) return;
     currencyCode.value = code;
-    window.localStorage?.setItem(STORAGE_KEY, code);
+    try { window.localStorage.setItem(STORAGE_KEY, code); } catch { /* Selection still works without persistence. */ }
   };
 
   return { currencyCode, currency, symbol, formatAmount, setCurrency, restore };

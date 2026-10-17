@@ -20,6 +20,7 @@ export interface SearchQuery {
   date: string;
   returnDate?: string;
   passengers: number;
+  flexibleDates?: boolean;
 }
 
 export interface FilterOptions {
@@ -68,6 +69,7 @@ export interface HotelSearchQuery {
   checkOut: string;
   adults: number;
   rooms: number;
+  flexibleDates?: boolean;
 }
 
 export interface HotelFilterOptions {
@@ -77,6 +79,7 @@ export interface HotelFilterOptions {
 }
 
 export interface HotelApiResponse {
+  mock?: boolean;
   success: boolean;
   data: Hotel[];
   error?: string;
@@ -101,18 +104,20 @@ export type ComboboxSuggestion = (LocationSuggestion | HotelAutocompleteSuggesti
 };
 
 /** Price alert for flights or hotels */
-export interface Alert {
+interface AlertBase {
   id: string;
-  type: 'flight' | 'hotel';
-  searchQuery: FlightSearchQuery | HotelSearchQuery;
   thresholdPrice: number;
-  currency: string; // currency for the threshold
-  createdAt: string; // ISO string
+  currency: string;
+  createdAt: string;
   active: boolean;
 }
+export type Alert = AlertBase & (
+  { type: 'flight'; searchQuery: SearchQuery } |
+  { type: 'hotel'; searchQuery: HotelSearchQuery }
+);
 
 /** Extended search query for alerts - we reuse the existing ones */
-export type AlertSearchQuery = FlightSearchQuery | HotelSearchQuery;
+export type AlertSearchQuery = SearchQuery | HotelSearchQuery;
 
 /** Historical price data point */
 export interface PriceHistoryPoint {
@@ -151,8 +156,7 @@ export interface PriceCalendar {
   mostExpensiveDate: string; // ISO date string of the most expensive day
 }
 
-/** Extended search query for alerts - we reuse the existing ones */
-export type AlertSearchQuery = FlightSearchQuery | HotelSearchQuery;
+
 
 /** Trip data model for saved trip plans */
 export interface Trip {

@@ -1,19 +1,11 @@
 import { ref, computed } from 'vue';
 import { useRuntimeConfig } from '#imports';
 
-export interface Alert {
-  id: string;
-  type: 'flight' | 'hotel';
-  searchQuery: any; // We'll use any for now, but ideally we'd have a union type
-  thresholdPrice: number;
-  currency: string;
-  createdAt: string;
-  active: boolean;
-}
+import type { Alert } from '~~/types';
 
 export const useAlerts = () => {
   const config = useRuntimeConfig();
-  const alerts = ref<Alert[]>([]);
+  const alerts = useState<Alert[]>('alerts', () => []);
   const loading = ref(false);
   const error = ref<string | null>(null);
 
@@ -32,6 +24,8 @@ export const useAlerts = () => {
   };
 
   const addAlert = async (alert: Omit<Alert, 'id' | 'createdAt'>) => {
+    loading.value = true;
+    error.value = null;
     try {
       const newAlert = await $fetch<Alert>('/api/alerts', {
         method: 'POST',
@@ -43,7 +37,7 @@ export const useAlerts = () => {
       error.value = e.message || 'Failed to add alert';
       console.error('Failed to add alert:', e);
       throw e;
-    }
+    } finally { loading.value = false; }
   };
 
   const updateAlert = async (id: string, updates: Partial<Alert>) => {
@@ -61,7 +55,7 @@ export const useAlerts = () => {
       error.value = e.message || 'Failed to update alert';
       console.error('Failed to update alert:', e);
       throw e;
-    }
+    } finally { loading.value = false; }
   };
 
   const deleteAlert = async (id: string) => {
@@ -74,7 +68,7 @@ export const useAlerts = () => {
       error.value = e.message || 'Failed to delete alert';
       console.error('Failed to delete alert:', e);
       throw e;
-    }
+    } finally { loading.value = false; }
   };
 
   // Initialize by fetching alerts

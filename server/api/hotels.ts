@@ -1,3 +1,4 @@
+import { rateLimit, clientIp } from '../utils/rateLimit';
 import type { Hotel, HotelApiResponse } from '../../types';
 
 // Gorgeous fallback hotels for premium offline presentation
@@ -116,11 +117,11 @@ export default defineEventHandler(async (event) => {
   const query = getQuery(event);
   const config = useRuntimeConfig(event);
 
-  const destination = (query.destination as string || '').trim();
-  const checkIn = (query.checkIn as string || '').trim();
-  const checkOut = (query.checkOut as string || '').trim();
-  const adults = Number(query.adults) || 1;
-  const rooms = Number(query.rooms) || 1;
+  const destination = queryText(query.destination, 'destination');
+  const checkIn = queryText(query.checkIn, 'checkIn');
+  const checkOut = queryText(query.checkOut, 'checkOut');
+  const adults = queryCount(query.adults, 'adults', 1, 10);
+  const rooms = queryCount(query.rooms, 'rooms', 1, 5);
 
   if (!destination || !checkIn || !checkOut) {
     return {
@@ -130,10 +131,12 @@ export default defineEventHandler(async (event) => {
     } as HotelApiResponse;
   }
 
+  if (!validDate(checkIn) || !validDate(checkOut) || checkOut <= checkIn) throw createError({ statusCode: 400, statusMessage: 'Check-out must follow a valid check-in date' });
+
   const limit = RATE_LIMIT.hotels;
   const gate = rateLimit('hotels', clientIp(event), limit.limit, limit.windowMs);
   if (!gate.allowed) {
-    setHeader(event, 'Retry-After', String(gate.retryAfterSeconds));
+    setHeader(event, 'Retry-After', gate.retryAfterSeconds);
     throw createError({
       statusCode: 429,
       statusMessage: 'Too many hotel searches. Please wait a moment before searching again.',
@@ -168,10 +171,7 @@ export default defineEventHandler(async (event) => {
       hotel.location.toLowerCase().includes(lowerDest)
     );
 
-    // If nothing matches, return all mock hotels to keep UI beautiful
-    if (filteredHotels.length === 0) {
-      filteredHotels = MOCK_HOTELS;
-    }
+
 
     // Add search-specific pricing calculation (mock multiplier based on room count and days)
     const start = new Date(checkIn).getTime();
@@ -180,13 +180,14 @@ export default defineEventHandler(async (event) => {
 
     const modifiedHotels = filteredHotels.map((h) => ({
       ...h,
-      pricePerNight: Math.round(h.pricePerNight * (0.9 + Math.random() * 0.2)), // Slight randomized pricing variance
+      pricePerNight: h.pricePerNight,
       totalPrice: Math.round(h.pricePerNight * nights * rooms),
     }));
 
     return {
       success: true,
       data: modifiedHotels,
+      mock: true,
     } as HotelApiResponse;
   }
 
@@ -257,7 +258,7 @@ export default defineEventHandler(async (event) => {
     cacheSet(key, result, CACHE_TTL.hotels);
     return result;
   } catch (error: any) {
-    console.error('Error fetching hotel data from SerpApi:', error);
+    console.error('Hotel provider request failed:', error.statusCode || 'connection error');
     
     // Fall back to filtered mock hotels if SerpApi fails
     const lowerDest = destination.toLowerCase();
@@ -266,9 +267,7 @@ export default defineEventHandler(async (event) => {
       hotel.location.toLowerCase().includes(lowerDest)
     );
 
-    if (filteredHotels.length === 0) {
-      filteredHotels = MOCK_HOTELS;
-    }
+
 
     const start = new Date(checkIn).getTime();
     const end = new Date(checkOut).getTime();
@@ -276,14 +275,15 @@ export default defineEventHandler(async (event) => {
 
     const modifiedHotels = filteredHotels.map((h) => ({
       ...h,
-      pricePerNight: Math.round(h.pricePerNight * (0.95 + Math.random() * 0.1)),
+      pricePerNight: h.pricePerNight,
       totalPrice: Math.round(h.pricePerNight * nights * rooms),
     }));
 
     return {
       success: true,
       data: modifiedHotels,
-      error: error.message || 'SerpApi hotel crawler experienced a connection error. Local database active.',
+      mock: true,
+      error: 'Hotel provider is unavailable. Showing sample hotels.',
     } as HotelApiResponse;
   }
 });

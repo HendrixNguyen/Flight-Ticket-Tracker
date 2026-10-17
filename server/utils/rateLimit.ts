@@ -35,7 +35,7 @@ export const clientIp = (event: any): string => {
   const forwarded = event.node?.req?.headers?.['x-forwarded-for'];
   if (typeof forwarded === 'string' && forwarded.length > 0) {
     // Left-most entry is the original client when behind Traefik.
-    return forwarded.split(',')[0].trim();
+    return forwarded.split(',')[0]!.trim();
   }
 
   const realIp = event.node?.req?.headers?.['x-real-ip'];

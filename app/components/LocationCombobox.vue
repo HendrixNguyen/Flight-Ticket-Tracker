@@ -97,7 +97,7 @@
 <script setup lang="ts">
 import { ref, computed, watch, onUnmounted } from 'vue';
 import { MapPin, Plane, Building, X, Loader2 } from 'lucide-vue-next';
-import type { ComboboxSuggestion } from '~/types';
+import type { ComboboxSuggestion } from '~~/types';
 
 const props = withDefaults(defineProps<{
   /** Visible label text; also the combobox accessible name. */
@@ -124,14 +124,16 @@ const emit = defineEmits<{
   (e: 'select', suggestion: ComboboxSuggestion): void;
 }>();
 
-let uid = 0;
-const inputId = `location-combobox-input-${++uid}`;
-const listboxId = `location-combobox-list-${++uid}`;
+const uid = useId();
+const inputId = `location-combobox-input-${uid}`;
+const listboxId = `location-combobox-list-${uid}`;
 
 const inputRef = ref<HTMLInputElement | null>(null);
 const containerRef = ref<HTMLElement | null>(null);
 
 const query = ref('');
+let selectedId = '';
+let selectedLabel = '';
 const suggestions = ref<ComboboxSuggestion[]>([]);
 const isLoading = ref(false);
 const isOpen = ref(false);
@@ -197,6 +199,10 @@ const handleInput = () => {
 
   if (debounceTimer) clearTimeout(debounceTimer);
 
+  requestSeq++;
+  selectedId = '';
+  selectedLabel = '';
+  emit('update:modelValue', query.value.trim());
   const term = query.value.trim();
   if (!term) {
     suggestions.value = props.popularLocations;
@@ -246,7 +252,7 @@ const handleKeydown = (event: KeyboardEvent) => {
         // Only swallow Enter when a suggestion is highlighted; otherwise let the
         // surrounding form submit normally.
         event.preventDefault();
-        select(suggestions.value[activeIndex.value]);
+        select(suggestions.value[activeIndex.value]!);
       }
       break;
     case 'Escape':
@@ -264,7 +270,12 @@ const handleKeydown = (event: KeyboardEvent) => {
 };
 
 const select = (suggestion: ComboboxSuggestion) => {
-  query.value = labelFor(suggestion);
+  requestSeq++;
+  if (debounceTimer) clearTimeout(debounceTimer);
+  isLoading.value = false;
+  selectedId = suggestion.id;
+  selectedLabel = labelFor(suggestion);
+  query.value = selectedLabel;
   isOpen.value = false;
   activeIndex.value = -1;
   emit('update:modelValue', suggestion.id);
@@ -273,6 +284,9 @@ const select = (suggestion: ComboboxSuggestion) => {
 };
 
 const clearSelection = () => {
+  requestSeq++;
+  if (debounceTimer) clearTimeout(debounceTimer);
+  isLoading.value = false;
   query.value = '';
   suggestions.value = props.popularLocations;
   isOpen.value = false;
@@ -296,13 +310,14 @@ watch(() => props.modelValue, (newId) => {
     query.value = '';
     return;
   }
+  if (newId === selectedId) { query.value = selectedLabel; return; }
   const current = suggestions.value.find(s => s.id === newId);
   if (current) {
     query.value = labelFor(current);
-  } else if (!query.value) {
+  } else {
     query.value = newId;
   }
-});
+}, { immediate: true });
 
 // Close when clicking outside the whole component.
 const handleClickOutside = (event: MouseEvent) => {
@@ -320,6 +335,7 @@ onUnmounted(() => {
   if (typeof document !== 'undefined') {
     document.removeEventListener('click', handleClickOutside);
   }
+  requestSeq++;
   if (debounceTimer) clearTimeout(debounceTimer);
   if (announceTimer) clearTimeout(announceTimer);
 });

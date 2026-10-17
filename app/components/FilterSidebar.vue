@@ -45,9 +45,9 @@
     <div class="mb-8">
       <div class="flex justify-between items-center mb-3">
         <h3 class="text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider">
-          Max Price <span class="text-[10px] text-slate-600 dark:text-slate-400 normal-case tracking-normal">(USD)</span>
+          Max Price <span class="text-[10px] text-slate-600 dark:text-slate-400 normal-case tracking-normal">({{ currencyCode }})</span>
         </h3>
-        <span class="text-sm font-bold text-blue-700 dark:text-blue-300">${{ localFilters.maxPrice }}</span>
+        <span class="text-sm font-bold text-blue-700 dark:text-blue-300">{{ formatAmount(Number(localFilters.maxPrice)) }}</span>
       </div>
       <input
         type="range"
@@ -55,12 +55,12 @@
         @change="emitFilters"
         :min="FLIGHT_PRICE_RANGE.min" :max="FLIGHT_PRICE_RANGE.max" :step="FLIGHT_PRICE_RANGE.step"
         :style="{ '--range-fill': priceFill }"
-        aria-label="Maximum price in US dollars"
+        :aria-label="`Maximum price in ${currencyCode}`"
         class="range w-full cursor-pointer"
       >
       <div class="flex justify-between text-xs text-slate-600 dark:text-slate-300 mt-2">
-        <span>${{ FLIGHT_PRICE_RANGE.min }}</span>
-        <span>${{ FLIGHT_PRICE_RANGE.max }}+</span>
+        <span>{{ formatAmount(FLIGHT_PRICE_RANGE.min) }}</span>
+        <span>No limit</span>
       </div>
     </div>
 
@@ -79,7 +79,7 @@
           <span class="text-slate-700 dark:text-slate-300 group-hover:text-slate-900 dark:group-hover:text-slate-100 font-medium transition-colors">Up to 1 stop</span>
         </label>
         <label class="choice group">
-          <input type="radio" v-model="localFilters.maxStops" :value="2" @change="emitFilters" class="choice-box accent-blue-600 dark:accent-blue-400 outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 dark:focus-visible:outline-blue-300">
+          <input type="radio" v-model="localFilters.maxStops" :value="99" @change="emitFilters" class="choice-box accent-blue-600 dark:accent-blue-400 outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 dark:focus-visible:outline-blue-300">
           <span class="text-slate-700 dark:text-slate-300 group-hover:text-slate-900 dark:group-hover:text-slate-100 font-medium transition-colors">Any number of stops</span>
         </label>
       </div>
@@ -88,11 +88,13 @@
 </template>
 
 <script setup lang="ts">
+import { useCurrency } from '~/composables/useCurrency';
 import { ref, watch, computed } from 'vue';
 import { SlidersHorizontal, ChevronDown } from 'lucide-vue-next';
-import type { FilterOptions, SortOption } from '~/types';
+import type { FilterOptions, SortOption } from '~~/types';
 import { FLIGHT_DEFAULT_FILTERS, FLIGHT_PRICE_RANGE } from '~/utils/filterDefaults';
 
+const { currencyCode, formatAmount } = useCurrency();
 const props = defineProps<{
   activeFilters: FilterOptions
 }>();
@@ -127,7 +129,7 @@ const resetFilters = () => {
 const priceFill = computed(() => {
   const { min, max } = FLIGHT_PRICE_RANGE;
   const current = Number(localFilters.value.maxPrice ?? max);
-  if (max === min) return '100%';
+  if (Number(max) === Number(min)) return '100%';
   const pct = ((current - min) / (max - min)) * 100;
   return `${Math.min(100, Math.max(0, pct))}%`;
 });

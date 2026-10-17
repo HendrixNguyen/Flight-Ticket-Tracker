@@ -1,183 +1,81 @@
-import { ref } from 'vue';
+import type { Trip, Flight, Hotel } from '../../types';
 
-// In-memory storage for trips
-let trips: Trip[] = [];
-
-// Generate a simple ID
-function generateId() {
-  return Math.random().toString(36).substring(2, 9);
-}
+const STORAGE_KEY = 'skycrawler-trips';
 
 export const useTrips = () => {
-  const tripsList = ref<Trip[]>([]);
+  const trips = useState<Trip[]>('trips', () => []);
   const loading = ref(false);
   const error = ref<string | null>(null);
-
+  const persist = () => {
+    if (import.meta.client) {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(trips.value));
+      } catch {
+        error.value = 'Unable to save trips in browser storage.';
+      }
+    }
+  };
   const fetchTrips = async () => {
     loading.value = true;
-    error.value = null;
     try {
-      // In a real implementation, this would fetch from a backend API
-      // For now, we'll use our in-memory storage
-      tripsList.value = trips;
-    } catch (e: any) {
-      error.value = e.message || 'Failed to fetch trips';
-      console.error('Failed to fetch trips:', e);
+      if (import.meta.client) {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        const parsed: unknown = saved ? JSON.parse(saved) : [];
+        if (Array.isArray(parsed))
+          trips.value = parsed.filter(
+            (t) =>
+              t && typeof t.id === 'string' && Array.isArray(t.flights) && Array.isArray(t.hotels),
+          );
+      }
+    } catch {
+      error.value = 'Unable to load saved trips.';
     } finally {
       loading.value = false;
     }
+    return trips.value;
   };
-
   const addTrip = async (trip: Omit<Trip, 'id' | 'createdAt' | 'updatedAt'>) => {
-    try {
-      const now = new Date().toISOString();
-      const newTrip = {
-        ...trip,
-        id: generateId(),
-        createdAt: now,
-        updatedAt: now
-      } as Trip;
-      trips.push(newTrip);
-      tripsList.value.push(newTrip);
-      return newTrip;
-    } catch (e: any) {
-      error.value = e.message || 'Failed to add trip';
-      console.error('Failed to add trip:', e);
-      throw e;
-    }
+    const now = new Date().toISOString();
+    const result: Trip = { ...trip, id: crypto.randomUUID(), createdAt: now, updatedAt: now };
+    trips.value.push(result);
+    persist();
+    return result;
   };
-
   const updateTrip = async (id: string, updates: Partial<Trip>) => {
-    try {
-      const index = trips.findIndex((t) => t.id === id);
-      if (index !== -1) {
-        const now = new Date().toISOString();
-        const updatedTrip = {
-          ...trips[index],
-          ...updates,
-          updatedAt: now
-        };
-        trips[index] = updatedTrip;
-        
-        // Update the ref
-        const tripIndex = tripsList.value.findIndex((t) => t.id === id);
-        if (tripIndex !== -1) {
-          tripsList.value[tripIndex] = updatedTrip;
-        }
-        
-        return updatedTrip;
-      }
-      throw createError({
-        statusCode: 404,
-        message: 'Trip not found',
-      });
-    } catch (e: any) {
-      error.value = e.message || 'Failed to update trip';
-      console.error('Failed to update trip:', e);
-      throw e;
-    }
+    const index = trips.value.findIndex((t) => t.id === id);
+    if (index < 0) throw new Error('Trip not found');
+    const result = { ...trips.value[index]!, ...updates, id, updatedAt: new Date().toISOString() };
+    trips.value[index] = result;
+    persist();
+    return result;
   };
-
   const deleteTrip = async (id: string) => {
-    try {
-      const index = trips.findIndex((t) => t.id === id);
-      if (index !== -1) {
-        const deleted = trips.splice(index, 1);
-        
-        // Update the ref
-        const tripIndex = tripsList.value.findIndex((t) => t.id === id);
-        if (tripIndex !== -1) {
-          tripsList.value.splice(tripIndex, 1);
-        }
-        
-        return deleted[0];
-      }
-      throw createError({
-        statusCode: 404,
-        message: 'Trip not found',
-      });
-    } catch (e: any) {
-      error.value = e.message || 'Failed to delete trip';
-      console.error('Failed to delete trip:', e);
-      throw e;
-    }
+    const index = trips.value.findIndex((t) => t.id === id);
+    if (index < 0) throw new Error('Trip not found');
+    const [deleted] = trips.value.splice(index, 1);
+    persist();
+    return deleted;
   };
-
-  // Add a flight to a trip
-  const addFlightToTrip = async (tripId: string, flight: Flight) => {
-    try {
-      const tripIndex = trips.findIndex((t) => t.id === tripId);
-      if (tripIndex !== -1) {
-        const now = new Date().toISOString();
-        trips[tripIndex] = {
-          ...trips[tripIndex],
-          flights: [...trips[tripIndex].flights, flight],
-          updatedAt: now
-        };
-        
-        // Update the ref
-        const refIndex = tripsList.value.findIndex((t) => t.id === tripId);
-        if (refIndex !== -1) {
-          tripsList.value[refIndex] = {
-            ...tripsList.value[refIndex],
-            flights: [...tripsList.value[refIndex].flights, flight],
-            updatedAt: now
-          };
-        }
-        
-        return trips[tripIndex];
-      }
-      throw createError({
-        statusCode: 404,
-        message: 'Trip not found',
-      });
-    } catch (e: any) {
-      error.value = e.message || 'Failed to add flight to trip';
-      console.error('Failed to add flight to trip:', e);
-      throw e;
-    }
+  const addFlightToTrip = async (id: string, flight: Flight) => {
+    const trip = trips.value.find((t) => t.id === id);
+    if (!trip) throw new Error('Trip not found');
+    return updateTrip(id, { flights: [...trip.flights, flight] });
   };
-
-  // Add a hotel to a trip
-  const addHotelToTrip = async (tripId: string, hotel: Hotel) => {
-    try {
-      const tripIndex = trips.findIndex((t) => t.id === tripId);
-      if (tripIndex !== -1) {
-        const now = new Date().toISOString();
-        trips[tripIndex] = {
-          ...trips[tripIndex],
-          hotels: [...trips[tripIndex].hotels, hotel],
-          updatedAt: now
-        };
-        
-        // Update the ref
-        const refIndex = tripsList.value.findIndex((t) => t.id === tripId);
-        if (refIndex !== -1) {
-          tripsList.value[refIndex] = {
-            ...tripsList.value[refIndex],
-            hotels: [...tripsList.value[refIndex].hotels, hotel],
-            updatedAt: now
-          };
-        }
-        
-        return trips[tripIndex];
-      }
-      throw createError({
-        statusCode: 404,
-        message: 'Trip not found',
-      });
-    } catch (e: any) {
-      error.value = e.message || 'Failed to add hotel to trip';
-      console.error('Failed to add hotel to trip:', e);
-      throw e;
-    }
+  const addHotelToTrip = async (id: string, hotel: Hotel) => {
+    const trip = trips.value.find((t) => t.id === id);
+    if (!trip) throw new Error('Trip not found');
+    return updateTrip(id, { hotels: [...trip.hotels, hotel] });
   };
-
-  // Initialize by fetching trips
-  // We'll call fetchTrips in onMounted in the component that uses this composable
-
+  const saveItem = async (item: Flight | Hotel, type: 'flight' | 'hotel') => {
+    await fetchTrips();
+    let trip = trips.value[0];
+    if (!trip) trip = await addTrip({ name: 'My Trip', flights: [], hotels: [] });
+    return type === 'flight'
+      ? addFlightToTrip(trip.id, item as Flight)
+      : addHotelToTrip(trip.id, item as Hotel);
+  };
   return {
-    trips: tripsList,
+    trips,
     loading,
     error,
     fetchTrips,
@@ -185,6 +83,7 @@ export const useTrips = () => {
     updateTrip,
     deleteTrip,
     addFlightToTrip,
-    addHotelToTrip
+    addHotelToTrip,
+    saveItem,
   };
 };

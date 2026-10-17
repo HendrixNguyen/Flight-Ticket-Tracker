@@ -10,6 +10,7 @@
     </div>
     
     <div v-else-if="calendarData" class="space-y-4">
+      <p class="text-sm text-slate-500">Illustrative price calendar — sample data, not live quotes.</p>
       <!-- Stats summary -->
       <div class="grid grid-cols-3 gap-4 text-sm text-slate-600 dark:text-slate-400">
         <div>
@@ -38,7 +39,7 @@
       
       <!-- Calendar grid -->
       <div class="grid gap-1">
-        <div v-for="(week, weekIndex) in calendarData.weeks" :key="weekIndex" class="grid cols-7 gap-1">
+        <div v-for="(week, weekIndex) in calendarData.weeks" :key="weekIndex" class="grid grid-cols-7 gap-1">
           <div v-for="(day, dayIndex) in week.days" :key="dayIndex" 
                class="aspect-w-1 aspect-h-1 bg-gray-50 dark:bg-gray-700/50 rounded-lg flex flex-col items-center justify-center p-1 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600/50 transition-colors"
                :class="{
@@ -87,38 +88,39 @@
 
 <script setup lang="ts">
 import { ref } from 'vue';
-import type { PriceCalendar } from '~/types';
+import type { PriceCalendar } from '~~/types';
 import { useCurrency } from '~/composables/useCurrency';
 
 const props = defineProps<{
   calendarData: PriceCalendar | null;
   loading: boolean;
   error: string | null;
-}>;
+}>();
 
 const selectedDate = ref<string | null>(null);
-const { formatAmount } = useCurrency();
+const { formatAmount: formatCurrency } = useCurrency();
+const formatAmount = (amount: number) => formatCurrency(amount, 'USD');
 
 const formatDate = (dateString: string): string => {
-  const date = new Date(dateString);
+  const date = new Date(dateString + 'T00:00:00');
   return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
 };
 
 const getDayName = (dateString: string): string => {
-  const date = new Date(dateString);
+  const date = new Date(dateString + 'T00:00:00');
   return date.toLocaleDateString(undefined, { weekday: 'short' });
 };
 
 const isWeekend = (dateString: string): boolean => {
-  const date = new Date(dateString);
+  const date = new Date(dateString + 'T00:00:00');
   const day = date.getDay();
   return day === 0 || day === 6; // Sunday or Saturday
 };
 
 const getPriceForDate = (dateString: string): number => {
-  if (!calendarData.value) return 0;
+  if (!props.calendarData) return 0;
   
-  for (const week of calendarData.value.weeks) {
+  for (const week of props.calendarData.weeks) {
     const day = week.days.find(d => d.date === dateString);
     if (day) return day.price;
   }

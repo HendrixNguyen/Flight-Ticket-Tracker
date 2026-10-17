@@ -1,93 +1,5 @@
 <template>
-  <div class="min-h-screen flex flex-col font-sans text-gray-900 dark:text-slate-100 transition-colors duration-300 relative">
-    <!-- The canvas layer -->
-    <div class="canvas fixed inset-0 -z-10 pointer-events-none overflow-hidden">
-      <div class="absolute -top-[32%] -left-[22%] w-[85%] h-[75%] rounded-full bg-sky-200/25 dark:bg-blue-600/10 blur-[160px]"></div>
-      <div class="absolute -bottom-[28%] -right-[18%] w-[75%] h-[70%] rounded-full bg-violet-200/25 dark:bg-violet-600/10 blur-[160px]"></div>
-    </div>
-
-    <!-- Floating header -->
-    <header class="sticky top-0 z-40 px-3 pt-3 sm:px-5 sm:pt-4 lg:px-6">
-      <div class="glass-card glass-grain mx-auto max-w-7xl rounded-glass-lg px-4 sm:px-6 lg:px-8 py-3 flex justify-between items-center gap-4">
-        <!-- Logo -->
-        <NuxtLink
-          to="/"
-          class="pill outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 dark:focus-visible:outline-blue-300 flex items-center gap-2 rounded-xl cursor-pointer select-none"
-        >
-          <Plane class="w-7 h-7 rotate-45 text-blue-600 dark:text-blue-400" />
-          <h1 class="text-xl sm:text-2xl font-black tracking-tight bg-gradient-to-r from-blue-700 via-blue-600 to-indigo-600 dark:from-blue-300 dark:via-blue-200 dark:to-indigo-300 bg-clip-text text-transparent">
-            SkyCrawler
-          </h1>
-        </NuxtLink>
-
-        <!-- Header Navigation Links -->
-        <div class="flex items-center gap-3 sm:gap-5">
-          <nav aria-label="Primary">
-            <ul class="flex items-center gap-1 sm:gap-2 text-sm">
-              <li>
-                <NuxtLink
-                  to="/"
-                  class="pill outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 dark:focus-visible:outline-blue-300 rounded-full px-3.5 py-1.5 transition-colors duration-200 cursor-pointer select-none"
-                  :class="[
-                    route.path === '/'
-                      ? 'bg-blue-600 text-white font-black shadow-md shadow-blue-500/25'
-                      : 'glass glass-hover text-slate-600 dark:text-slate-300 font-semibold hover:text-slate-900 dark:hover:text-white',
-                  ]"
-                >
-                  Flights
-                </NuxtLink>
-              </li>
-              <li>
-                <NuxtLink
-                  to="/hotels"
-                  class="pill outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 dark:focus-visible:outline-blue-300 rounded-full px-3.5 py-1.5 transition-colors duration-200 cursor-pointer select-none"
-                  :class="[
-                    route.path === '/hotels'
-                      ? 'bg-blue-600 text-white font-black shadow-md shadow-blue-500/25'
-                      : 'glass glass-hover text-slate-600 dark:text-slate-300 font-semibold hover:text-slate-900 dark:hover:text-white',
-                  ]"
-                >
-                  Hotels
-                </NuxtLink>
-              </li>
-              <li>
-                <NuxtLink
-                  to="/alerts"
-                  class="pill outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 dark:focus-visible:outline-blue-300 rounded-full px-3.5 py-1.5 transition-colors duration-200 cursor-pointer select-none"
-                  :class="[
-                    route.path === '/alerts'
-                      ? 'bg-blue-600 text-white font-black shadow-md shadow-blue-500/25'
-                      : 'glass glass-hover text-slate-600 dark:text-slate-300 font-semibold hover:text-slate-900 dark:hover:text-white',
-                  ]"
-                >
-                  Alerts
-                </NuxtLink>
-              </li>
-              <li>
-                <NuxtLink
-                  to="/trips"
-                  class="pill outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 dark:focus-visible:outline-blue-300 rounded-full px-3.5 py-1.5 transition-colors duration-200 cursor-pointer select-none"
-                  :class="[
-                    route.path === '/trips'
-                      ? 'bg-blue-600 text-white font-black shadow-md shadow-blue-500/25'
-                      : 'glass glass-hover text-slate-600 dark:text-slate-300 font-semibold hover:text-slate-900 dark:hover:text-white',
-                  ]"
-                >
-                  Trips
-                </NuxtLink>
-              </li>
-            </ul>
-          </nav>
-          <div class="flex items-center gap-2 sm:gap-3">
-            <CurrencySelector @change="handleCurrencyChange" />
-            <ThemeSwitcher />
-          </div>
-        </div>
-      </div>
-    </header>
-
-    <!-- Main Content Grid -->
-    <main class="flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full relative z-10">
+  <div>
       <h2 class="text-2xl font-black mb-6">My Trips</h2>
 
       <div v-if="loading" class="flex flex-col justify-center items-center py-20">
@@ -174,80 +86,19 @@
           </div>
         </div>
       </div>
-    </main>
-
-    <!-- Footer -->
-    <footer class="mt-auto w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 text-center">
-      <p class="text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-widest">
-        &copy; {{ new Date().getFullYear() }} SkyCrawler. Curating The Smart Travel Network.
-      </p>
-    </footer>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue';
-import { useRoute, useRouter } from '#imports';
-import { Plane } from 'lucide-vue-next';
-import { useCurrency } from '~/composables/useCurrency';
+import { onMounted } from 'vue';
+import { CircleAlert } from 'lucide-vue-next';
 import { useTrips } from '~/composables/useTrips';
-import type { Trip } from '~/types';
-
-const { formatAmount } = useCurrency();
-const { trips: tripsList, addTrip, loading: tripsLoading, error: tripsError } = useTrips();
-
-const route = useRoute();
-const router = useRouter();
-
-const trips = ref<Trip[]>([]);
-const loading = ref(false);
-const error = ref<string | null>(null);
-
-// Fetch trips on mount
-const fetchTrips = async () => {
-  loading.value = true;
-  error.value = null;
-  try {
-    const data = await fetchTrips(); // This calls the composable function
-    trips.value = data;
-  } catch (e: any) {
-    error.value = e.message || 'Failed to fetch trips';
-    console.error('Failed to fetch trips:', e);
-  } finally {
-    loading.value = false;
-  }
-};
-
-const deleteTrip = async (id: string) => {
-  try {
-    await deleteTrip(id); // This calls the composable function
-    trips.value = trips.value.filter((t) => t.id !== id);
-  } catch (e: any) {
-    error.value = e.message || 'Failed to delete trip';
-    console.error('Failed to delete trip:', e);
-  }
-};
-
+const { trips, loading, error, fetchTrips, deleteTrip, updateTrip } = useTrips();
 const editTrip = async (id: string) => {
-  // In a full implementation, we would navigate to an edit trip page
-  // For now, we'll just show an alert
-  alert('Edit trip functionality would be implemented here');
+  const trip = trips.value.find(t => t.id === id);
+  const name = window.prompt('Trip name', trip?.name);
+  if (name?.trim()) await updateTrip(id, { name: name.trim() });
 };
-
-// Handle currency change
-const handleCurrencyChange = () => {
-  // Refetch trips to ensure currency is consistent
-  fetchTrips();
-};
-
-// Format date for display
-const formatDate = (dateString: string): string => {
-  const date = new Date(dateString);
-  return date.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
-};
-
-// Fetch trips on mount
-onMounted(() => {
-  fetchTrips();
-});
+const formatDate = (date: string) => new Date(date).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+onMounted(fetchTrips);
 </script>
