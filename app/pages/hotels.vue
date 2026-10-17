@@ -399,7 +399,7 @@ const activeChips = computed(() => {
   const f = hotelFilters.value;
 
   if (f.maxPrice !== undefined && f.maxPrice < HOTEL_PRICE_RANGE.max) {
-    chips.push({ key: 'maxPrice', label: `Under $${f.maxPrice}/night (USD)` });
+    chips.push({ key: 'maxPrice', label: `Under ${f.maxPrice}/night (USD)` });
   }
   if (f.minRating !== undefined && f.minRating > 0) {
     chips.push({ key: 'minRating', label: `${f.minRating.toFixed(1)}+ rating` });
