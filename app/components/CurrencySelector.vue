@@ -30,18 +30,18 @@
           :id="optionId(option.code)"
           :key="option.code"
           role="option"
-          :aria-selected="option.code === currencyCode"
+          :aria-selected="option.code === currencyCode.value"
           @click="select(option.code)"
           @mousemove="activeIndex = index"
           class="flex items-center gap-3 px-4 py-2.5 cursor-pointer transition-colors"
-          :class="option.code === currencyCode
+          :class="option.code === currencyCode.value
             ? 'bg-blue-600/20 text-slate-900 dark:text-white font-black shadow-[inset_0_0_0_1px_var(--color-blue-500)]'
             : 'text-slate-700 dark:text-slate-200 font-semibold hover:bg-slate-900/5 dark:hover:bg-white/10'"
         >
           <span class="w-7 text-sm font-black shrink-0">{{ option.symbol }}</span>
           <span class="text-xs font-bold">{{ option.label }}</span>
           <span class="text-[11px] text-slate-600 dark:text-slate-400 ml-auto truncate">{{ option.name }}</span>
-          <Check v-if="option.code === currencyCode" class="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" aria-hidden="true" />
+          <Check v-if="option.code === currencyCode.value" class="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" aria-hidden="true" />
         </li>
       </ul>
     </transition>
