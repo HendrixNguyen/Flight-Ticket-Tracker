@@ -123,7 +123,7 @@ const handleSystemThemeChange = (event: MediaQueryListEvent | MediaQueryList) =>
 // Applies active configuration and stores preference
 const applyTheme = (mode: ThemeMode) => {
   themeMode.value = mode;
-  localStorage.setItem('sky-crawler-theme', mode);
+  try { localStorage.setItem('sky-crawler-theme', mode); } catch { /* Theme works without browser storage. */ }
 
   if (mode === 'light') {
     document.documentElement.classList.remove('dark');
@@ -179,7 +179,8 @@ onMounted(() => {
   systemMediaQuery.addEventListener('change', handleSystemThemeChange);
 
   // Apply default preferences
-  const savedTheme = localStorage.getItem('sky-crawler-theme') as ThemeMode | null;
+  let savedTheme: string | null = null;
+  try { savedTheme = localStorage.getItem('sky-crawler-theme'); } catch { /* Use device theme. */ }
   if (savedTheme === 'light' || savedTheme === 'dark' || savedTheme === 'device') {
     applyTheme(savedTheme);
   } else {

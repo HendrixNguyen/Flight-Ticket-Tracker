@@ -14,7 +14,7 @@ import tailwindcss from "@tailwindcss/vite";
  * `colorScheme` is set alongside the class so native form controls and
  * scrollbars are themed in the same tick rather than one frame later.
  */
-const themeScript = `(function(){try{var d=document.documentElement;var t=null;try{t=window.localStorage.getItem('sky-crawler-theme');}catch(e){}if(t!=='light'&&t!=='dark'){t='device';}var dark=t==='dark'||(t==='device'&&typeof window.matchMedia==='function'&&window.matchMedia('(prefers-color-scheme: dark)').matches);d.classList.toggle('dark',dark);d.style.colorScheme=dark?'dark':'light';if(t==='device'&&typeof window.matchMedia==='function'){var mq=window.matchMedia('(prefers-color-scheme: dark)');var onChange=function(e){d.classList.toggle('dark',e.matches);d.style.colorScheme=e.matches?'dark':'light';};if(mq.addEventListener){mq.addEventListener('change',onChange);}else if(mq.addListener){mq.addListener(onChange);}}}catch(e){}})();`
+const themeScript = `(function(){try{var d=document.documentElement;var t=null;try{t=window.localStorage.getItem('sky-crawler-theme');}catch(e){}if(t!=='light'&&t!=='dark'){t='device';}var dark=t==='dark'||(t==='device'&&typeof window.matchMedia==='function'&&window.matchMedia('(prefers-color-scheme: dark)').matches);d.classList.toggle('dark',dark);d.style.colorScheme=dark?'dark':'light';}catch(e){}})();`
 
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({

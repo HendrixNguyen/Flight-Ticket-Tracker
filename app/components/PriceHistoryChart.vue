@@ -10,6 +10,7 @@
     </div>
 
     <div v-else-if="historyData" class="space-y-4">
+      <p class="text-sm text-slate-500">Illustrative price history — sample data, not recorded fares.</p>
       <!-- Stats summary -->
       <div class="grid grid-cols-2 gap-4 text-sm text-slate-600 dark:text-slate-400">
         <div>
@@ -22,7 +23,7 @@
         </div>
         <div>
           <div class="font-medium">Volatility</div>
-          <div>{{ (historyData.volatility * 100).toFixed(1) }}%</div>
+          <div>{{ (historyData.averagePrice ? historyData.volatility / historyData.averagePrice * 100 : 0).toFixed(1) }}%</div>
         </div>
         <div>
           <div class="font-medium">Trend</div>
@@ -49,22 +50,22 @@
       <div class="h-64 relative">
         <svg class="w-full h-full" viewBox="0 0 100 60" preserveAspectRatio="xMidYMid meet">
           <!-- Axes -->
-          <line x1="10" y1="50" x2="90" y2="50" stroke="slate-300" stroke-width="1" />
-          <line x1="10" y1="10" x2="10" y2="50" stroke="slate-300" stroke-width="1" />
+          <line x1="10" y1="50" x2="90" y2="50" stroke="#cbd5e1" stroke-width="1" />
+          <line x1="10" y1="10" x2="10" y2="50" stroke="#cbd5e1" stroke-width="1" />
 
           <!-- Y-axis labels -->
-          <text x="5" y="20" text-anchor="end" fill="slate-400" font-size="8">{{ formatAmount(Math.ceil(historyData.maxPrice)) }}</text>
-          <text x="5" y="35" text-anchor="end" fill="slate-400" font-size="8">{{ formatAmount(Math.round((historyData.maxPrice + historyData.minPrice) / 2)) }}</text>
-          <text x="5" y="50" text-anchor="end" fill="slate-400" font-size="8">{{ formatAmount(historyData.minPrice) }}</text>
+          <text x="5" y="20" text-anchor="end" fill="#94a3b8" font-size="8">{{ formatAmount(Math.ceil(historyData.maxPrice)) }}</text>
+          <text x="5" y="35" text-anchor="end" fill="#94a3b8" font-size="8">{{ formatAmount(Math.round((historyData.maxPrice + historyData.minPrice) / 2)) }}</text>
+          <text x="5" y="50" text-anchor="end" fill="#94a3b8" font-size="8">{{ formatAmount(historyData.minPrice) }}</text>
 
           <!-- X-axis labels -->
-          <text x="10" y="58" text-anchor="start" fill="slate-400" font-size="8">{{ formatDate(historyData.points[0]?.date) }}</text>
-          <text x="90" y="58" text-anchor="end" fill="slate-400" font-size="8">{{ formatDate(historyData.points[historyData.points.length - 1]?.date) }}</text>
+          <text x="10" y="58" text-anchor="start" fill="#94a3b8" font-size="8">{{ formatDate(historyData.points[0]?.date) }}</text>
+          <text x="90" y="58" text-anchor="end" fill="#94a3b8" font-size="8">{{ formatDate(historyData.points[historyData.points.length - 1]?.date) }}</text>
 
           <!-- Price line -->
           <polyline
             fill="none"
-            stroke="blue-500"
+            stroke="#3b82f6"
             stroke-width="2"
             :points="linePoints"
           />
@@ -76,7 +77,7 @@
             :cx="pointX(index)"
             :cy="pointY(index)"
             r="2"
-            fill="blue-500"
+            fill="#3b82f6"
           />
 
           <!-- Current price indicator -->
@@ -86,7 +87,7 @@
             :y1="currentPriceY"
             x2="90"
             :y2="currentPriceY"
-            stroke="red-500"
+            stroke="#ef4444"
             stroke-width="1"
             stroke-dasharray="4,2"
           />
@@ -94,7 +95,7 @@
             v-if="currentPrice !== undefined"
             x="92"
             :y="currentPriceY"
-            fill="red-600"
+            fill="#dc2626"
             font-size="8"
             alignment-baseline="middle"
           >
@@ -112,7 +113,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue';
-import type { PriceHistoryData } from '~/types';
+import type { PriceHistoryData } from '~~/types';
 import { useCurrency } from '~/composables/useCurrency';
 
 const props = defineProps<{
@@ -120,12 +121,14 @@ const props = defineProps<{
   loading: boolean;
   error: string | null;
   currentPrice?: number;
-}>;
+}>();
 
-const { formatAmount } = useCurrency();
+const { formatAmount: formatCurrency } = useCurrency();
+const formatAmount = (amount: number) => formatCurrency(amount, 'USD');
 
-const formatDate = (dateString: string): string => {
-  const date = new Date(dateString);
+const formatDate = (dateString?: string): string => {
+  if (!dateString) return '';
+  const date = new Date(dateString + 'T00:00:00');
   return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
 };
 
@@ -135,7 +138,7 @@ const linePoints = computed(() => {
   const range = maxPrice - minPrice || 1;
   return points
     .map((p, i) => {
-      const x = 10 + (i / (points.length - 1)) * 80;
+      const x = 10 + (i / Math.max(1, points.length - 1)) * 80;
       const y = 50 - ((p.price - minPrice) / range) * 40;
       return x + "," + y;
     })
@@ -144,14 +147,14 @@ const linePoints = computed(() => {
 
 const pointX = (index: number): number => {
   if (!props.historyData?.points?.length) return 0;
-  return 10 + (index / (props.historyData.points.length - 1)) * 80;
+  return 10 + (index / Math.max(1, props.historyData.points.length - 1)) * 80;
 };
 
 const pointY = (index: number): number => {
   if (!props.historyData?.points?.[index]) return 50;
   const { points, minPrice, maxPrice } = props.historyData!;
   const range = maxPrice - minPrice || 1;
-  return 50 - ((points[index].price - minPrice) / range) * 40;
+  return 50 - ((points[index]!.price - minPrice) / range) * 40;
 };
 
 const currentPriceY = computed(() => {

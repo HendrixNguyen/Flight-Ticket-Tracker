@@ -56,7 +56,7 @@
                   Threshold Price:
                 </p>
                 <p class="text-2xl font-black">
-                  {{ formatAmount(alert.thresholdPrice) }}
+                  {{ formatAmount(alert.thresholdPrice, alert.currency) }}
                 </p>
               </div>
               <div class="flex flex-col items-start sm:items-center">
@@ -73,7 +73,7 @@
             </div>
             <div class="flex justify-end space-x-3 mt-4">
               <button
-                @click="toggleAlert(alert.id, !alert.active)"
+                @click="toggleAlert(alert.id, !alert.active).catch(() => {})"
                 class="px-3 py-1.5 text-sm font-medium"
                 :class="{
                   'bg-green-500 hover:bg-green-600 text-white': alert.active,
@@ -83,7 +83,7 @@
                 {{ alert.active ? 'Pause' : 'Activate' }}
               </button>
               <button
-                @click="deleteAlert(alert.id)"
+                @click="deleteAlert(alert.id).catch(() => {})"
                 class="px-3 py-1.5 text-sm font-medium bg-red-500 hover:bg-red-600 text-white"
               >
                 Delete
@@ -92,92 +92,29 @@
           </div>
         </div>
       </div>
-      </section>
+  </section>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { onMounted, onUnmounted } from 'vue';
 import { CircleAlert } from 'lucide-vue-next';
 import { useCurrency } from '~/composables/useCurrency';
 import { useAlerts } from '~/composables/useAlerts';
 import { useAlertChecking } from '~/composables/useAlertChecking';
-import type { Alert } from '~/types';
-
-const { formatAmount, currencyCode } = useCurrency();
-const { alerts: alertList, addAlert, loading: alertLoading, error: alertError } = useAlerts();
-const { checkAlertPrices, checking: alertChecking } = useAlertChecking();
-
-
-const alerts = ref<Alert[]>([]);
-const loading = ref(false);
-const error = ref<string | null>(null);
-
-// Fetch alerts on mount
-const fetchAlerts = async () => {
-  loading.value = true;
-  error.value = null;
-  try {
-    const data = await $fetch<Alert[]>('/api/alerts');
-    alerts.value = data;
-  } catch (e: any) {
-    error.value = e.message || 'Failed to fetch alerts';
-    console.error('Failed to fetch alerts:', e);
-  } finally {
-    loading.value = false;
-  }
-};
-
-const deleteAlert = async (id: string) => {
-  try {
-    await $fetch(`/api/alerts/${id}`, {
-      method: 'DELETE',
-    });
-    alerts.value = alerts.value.filter((a) => a.id !== id);
-  } catch (e: any) {
-    error.value = e.message || 'Failed to delete alert';
-    console.error('Failed to delete alert:', e);
-  }
-};
-
-const toggleAlert = async (id: string, active: boolean) => {
-  try {
-    await $fetch(`/api/alerts/${id}`, {
-      method: 'PUT',
-      body: { active },
-    });
-    const alert = alerts.value.find((a) => a.id === id);
-    if (alert) {
-      alert.active = active;
-    }
-  } catch (e: any) {
-    error.value = e.message || 'Failed to toggle alert';
-    console.error('Failed to toggle alert:', e);
-  }
-};
-
-let checkingInterval: ReturnType<typeof setInterval> | undefined;
-
-// Start checking alert prices when the component mounts and set up an interval
-onMounted(() => {
-  fetchAlerts();
-  window.addEventListener('currency-changed', handleCurrencyChange);
-  // Check alert prices every 5 minutes
-  checkingInterval = setInterval(() => {
-    checkAlertPrices(alerts.value);
-  }, 5 * 60 * 1000); // 5 minutes
-  // Also check immediately on mount
-  checkAlertPrices(alerts.value);
+const { formatAmount } = useCurrency();
+const { alerts, loading, error, fetchAlerts, deleteAlert, updateAlert } = useAlerts();
+const { checkAlertPrices } = useAlertChecking();
+const toggleAlert = (id: string, active: boolean) => updateAlert(id, { active });
+let interval: ReturnType<typeof setInterval> | undefined;
+let disposed = false;
+onMounted(async () => {
+  await fetchAlerts();
+  if (disposed) return;
+  await checkAlertPrices(alerts.value);
+  if (!disposed) interval = setInterval(() => checkAlertPrices(alerts.value), 5 * 60 * 1000);
 });
-
 onUnmounted(() => {
-  if (checkingInterval) clearInterval(checkingInterval);
-  window.removeEventListener('currency-changed', handleCurrencyChange);
+  disposed = true;
+  if (interval) clearInterval(interval);
 });
-
-// Handle currency change
-const handleCurrencyChange = () => {
-  // Refetch alerts to ensure currency is consistent? Or we could update the alerts with the new currency
-  // For simplicity, we'll just refetch
-  fetchAlerts();
-};
 </script>

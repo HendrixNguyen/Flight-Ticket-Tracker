@@ -1,6 +1,6 @@
 <template>
   <div class="flex flex-col gap-4 w-full">
-    
+
     <!-- Search Card Form Section.
 
          `.glass-card` carries its own fill, blur, border and layered shadow, so
@@ -66,27 +66,26 @@
             <p class="text-xs">{{ errorMessage || 'An unexpected API connection error occurred. Please try again.' }}</p>
           </div>
         </div>
-        
+
           <div v-else>
             <!-- Price Calendar (for flexible date searches) -->
             <div v-if="hasCalendarData" class="mb-6">
-              <PriceCalendar 
-                :calendarData="calendarData" 
-                :loading="false" 
-                :error="null"
+              <PriceCalendar
+                :calendarData="calendarData"
+                :loading="calendarLoading"
+                :error="calendarError"
               />
             </div>
-            
+
             <!-- Price History Chart -->
             <div v-if="hasSearchedFlights && !hasCalendarData" class="mb-6">
-              <PriceHistoryChart 
-                :historyData="flightHistoryData" 
-                :loading="historyLoading" 
-                :error="historyError" 
-                :currentPrice="rawFlights.length > 0 ? Math.min(...rawFlights.map(f => f.price)) : undefined"
+              <PriceHistoryChart
+                :historyData="flightHistoryData"
+                :loading="historyLoading"
+                :error="historyError"
               />
             </div>
-            
+
             <FlightList
               :flights="filteredAndSortedFlights"
               :searched="hasSearchedFlights"
@@ -102,7 +101,8 @@
  </div>
 
 <!-- Alert Modal -->
-<div v-show="showAlertModal" class="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-slate-900/45 dark:bg-slate-950/70 backdrop-blur-md">
+<Teleport to="body">
+<div v-if="showAlertModal" class="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-slate-900/45 dark:bg-slate-950/70 backdrop-blur-md">
   <div class="glass-elevated glass-grain rounded-3xl p-6 max-w-md w-full relative select-none">
     <div class="flex justify-between items-start mb-4">
       <h3 class="text-xl font-black text-slate-900 dark:text-slate-100">Set Price Alert</h3>
@@ -128,7 +128,7 @@
           <label class="flex items-center space-x-2 text-sm font-medium text-slate-700 dark:text-slate-300">
             <input
               type="radio"
-              value="hotel"
+              value="hotel" disabled
               v-model="alertType"
               class="form-radio h-4 w-4 text-blue-600"
             />
@@ -154,11 +154,12 @@
           Current Search
         </label>
         <div class="text-sm text-slate-500 dark:text-slate-400">
-          {{ alertType === 'flight' ? `From: ${lastQuery?.from || ''} To: ${lastQuery?.to || ''}` : `Destination: ${lastQuery?.destination || ''}` }}
+          {{ `From: ${lastQuery?.from || ''} To: ${lastQuery?.to || ''}` }}
         </div>
       </div>
       <div class="flex justify-end space-x-3">
         <button
+          type="button"
           @click="closeAlertModal"
           class="px-4 py-2 bg-slate-200 dark:bg-slate-700 text-slate-900 dark:text-slate-100 rounded-lg hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors"
         >
@@ -175,17 +176,19 @@
     </form>
   </div>
 </div>
+</Teleport>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useRoute, useRouter } from '#imports';
 import { CircleAlert } from 'lucide-vue-next';
-import type { Flight, SearchQuery, FilterOptions, SortOption, Alert } from '~/types';
+import type { Flight, SearchQuery, FilterOptions, SortOption, Alert } from '~~/types';
 import { FLIGHT_DEFAULT_FILTERS, FLIGHT_PRICE_RANGE } from '~/utils/filterDefaults';
 import { useCurrency } from '~/composables/useCurrency';
 import { useAlerts } from '~/composables/useAlerts';
 import { useAlertChecking } from '~/composables/useAlertChecking';
+import { usePriceCalendar } from '~/composables/usePriceCalendar';
 import { usePriceHistory } from '~/composables/usePriceHistory';
 import PriceHistoryChart from '~/components/PriceHistoryChart.vue';
 
@@ -195,8 +198,9 @@ const { checkAlertPrices, checking: alertChecking } = useAlertChecking();
 const { historyData: flightHistoryData, loading: historyLoading, error: historyError, fetchPriceHistory: fetchFlightHistory, formatDate, getPriceChangePercent } = usePriceHistory();
 
 // Calendar data for flexible date search
-const hasCalendarData = ref(false);
-const calendarData = ref<any>(null);
+const { calendarData, loading: calendarLoading, error: calendarError, fetchPriceCalendar } = usePriceCalendar();
+const hasCalendarData = computed(() => Boolean(lastQuery.value?.flexibleDates));
+let searchSequence = 0;
 
 const route = useRoute();
 const router = useRouter();
@@ -236,18 +240,21 @@ const lastQuery = ref<SearchQuery | null>(null);
 
 // Flight Search triggers
 const handleFlightSearch = async (query: SearchQuery, refresh = false) => {
+  const sequence = ++searchSequence;
   isSearching.value = true;
+  hasSearchedFlights.value = false;
   hasFailed.value = false;
   syncUrl(query);
   lastQuery.value = query;
 
     try {
-      const response = await $fetch<{ success: boolean; data: Flight[]; error?: string }>('/api/flights', {
+      const httpResponse = await $fetch.raw<{ success: boolean; data: Flight[]; error?: string }>('/api/flights', {
         params: {
           from: query.from,
           to: query.to,
           date: query.date,
           returnDate: query.returnDate,
+          passengers: query.passengers,
           // Ask the server to bypass its cache so the user sees live prices.
           refresh: refresh ? 1 : undefined,
           currency: currencyCode.value,
@@ -257,44 +264,30 @@ const handleFlightSearch = async (query: SearchQuery, refresh = false) => {
       });
 
       // Surfaced so the user can tell cached results from a live lookup.
-      wasCached.value = response.headers?.get('x-cache') === 'HIT';
-      
+      if (sequence !== searchSequence) return;
+      const response = httpResponse._data;
+      wasCached.value = httpResponse.headers.get('x-cache') === 'HIT';
+
       if (response && response.success) {
-        // If flexible dates is requested, we expect price calendar data
+        rawFlights.value = response.data;
+        hasSearchedFlights.value = true;
+        const analysisParams = { from: query.from, to: query.to, date: query.date, returnDate: query.returnDate || '', passengers: String(query.passengers), type: 'flight' };
         if (query.flexibleDates) {
-          // In a real implementation, the response would contain price calendar data
-          // For now, we'll store it in a separate variable and show the calendar UI
-          rawFlights.value = response.data; // This would actually be calendar data
-          hasSearchedFlights.value = true;
-          // Set a flag to indicate we have calendar data
-          hasCalendarData.value = true;
-          calendarData.value = response.data as any; // Assuming we have this ref
+          fetchPriceCalendar(analysisParams);
         } else {
-          rawFlights.value = response.data;
-          hasSearchedFlights.value = true;
-          
-          // Fetch price history for this search
-          if (lastQuery.value) {
-            fetchFlightHistory({
-              from: lastQuery.value.from,
-              to: lastQuery.value.to,
-              date: lastQuery.value.date,
-              returnDate: lastQuery.value.returnDate || '',
-              passengers: lastQuery.value.passengers || 1,
-              type: 'flight'
-            });
-          }
+          fetchFlightHistory(analysisParams);
         }
       } else {
       hasFailed.value = true;
       errorMessage.value = response?.error || 'Failed to crawl flights.';
     }
   } catch (err: any) {
+    if (sequence !== searchSequence) return;
     console.error('Failed to fetch flights:', err);
     hasFailed.value = true;
     errorMessage.value = err.message || 'An unexpected connection error occurred.';
   } finally {
-    isSearching.value = false;
+    if (sequence === searchSequence) isSearching.value = false;
   }
 };
 
@@ -302,6 +295,7 @@ const handleFlightSearch = async (query: SearchQuery, refresh = false) => {
 // returns different amounts. Re-run the active search with a forced refresh so
 // the cache does not serve the previous currency's prices.
 const handleCurrencyChange = () => {
+  flightFilters.value.maxPrice = FLIGHT_PRICE_RANGE.max;
   if (lastQuery.value) {
     handleFlightSearch(lastQuery.value, true);
   }
@@ -355,7 +349,7 @@ const activeChips = computed(() => {
   const f = flightFilters.value;
 
   if (f.maxPrice !== undefined && f.maxPrice < FLIGHT_PRICE_RANGE.max) {
-    chips.push({ key: 'maxPrice', label: `Under ${f.maxPrice} (USD)` });
+    chips.push({ key: 'maxPrice', label: `Under ${f.maxPrice} (${currencyCode.value})` });
   }
   if (f.maxStops !== undefined && f.maxStops !== FLIGHT_DEFAULT_FILTERS.maxStops) {
     const labels: Record<number, string> = { 0: 'Direct only', 1: 'Max 1 stop' };
@@ -381,7 +375,7 @@ const filteredAndSortedFlights = computed(() => {
   let result = [...rawFlights.value];
 
   // Apply filters
-  if (flightFilters.value.maxPrice) {
+  if (flightFilters.value.maxPrice !== undefined && flightFilters.value.maxPrice < FLIGHT_PRICE_RANGE.max) {
     result = result.filter(f => f.price <= flightFilters.value.maxPrice!);
   }
   if (flightFilters.value.maxStops !== undefined) {

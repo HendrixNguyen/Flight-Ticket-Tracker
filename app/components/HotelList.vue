@@ -59,7 +59,7 @@
 
 <script setup lang="ts">
 import { Hotel as HotelIcon, SearchX, RefreshCw } from 'lucide-vue-next';
-import type { Hotel } from '~/types';
+import type { Hotel } from '~~/types';
 
 defineProps<{
   hotels: Hotel[];

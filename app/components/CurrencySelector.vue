@@ -103,7 +103,7 @@ const handleKeydown = (event: KeyboardEvent) => {
     case 'Enter':
     case ' ':
       event.preventDefault();
-      select(CURRENCIES[activeIndex.value].code);
+      select(CURRENCIES[activeIndex.value]!.code);
       break;
     case 'Escape':
       event.preventDefault();
@@ -119,7 +119,7 @@ const handleKeydown = (event: KeyboardEvent) => {
 const scrollActiveIntoView = () => {
   nextTick(() => {
     listbox.value
-      ?.querySelector(`#${CSS.escape(optionId(CURRENCIES[activeIndex.value].code))}`)
+      ?.querySelector(`#${CSS.escape(optionId(CURRENCIES[activeIndex.value]!.code))}`)
       ?.scrollIntoView({ block: 'nearest' });
   });
 };

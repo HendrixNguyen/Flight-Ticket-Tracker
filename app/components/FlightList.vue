@@ -62,7 +62,7 @@
 
 <script setup lang="ts">
 import { Map, SearchX, RefreshCw } from 'lucide-vue-next';
-import type { Flight } from '~/types';
+import type { Flight } from '~~/types';
 
 defineProps<{
   flights: Flight[],

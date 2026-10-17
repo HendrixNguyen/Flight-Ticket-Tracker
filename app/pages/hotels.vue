@@ -1,6 +1,6 @@
 <template>
   <div class="flex flex-col gap-4 w-full">
-    
+
     <!-- Search Card Form Section.
 
          `.glass-card` carries its own fill, blur, border and layered shadow, so
@@ -64,7 +64,7 @@
          <button
            @click="openAlertModal"
            class="w-full px-4 py-2 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
-           :disabled="alertLoading || !hasSearchedHotels"
+           :disabled="alertLoading || !hasSearchedHotels || isMock"
          >
            Set Price Alert
          </button>
@@ -90,18 +90,19 @@
              <p class="text-xs">{{ errorMessage || 'An unexpected API connection error occurred. Please try again.' }}</p>
            </div>
          </div>
-         
+
         <div v-else>
+          <p v-if="isMock" class="mb-4 text-sm text-amber-700">Showing sample hotels and USD prices. Live hotel quotes are unavailable.</p>
+          <PriceCalendar v-if="hasCalendarData" :calendar-data="calendarData" :loading="calendarLoading" :error="calendarError" />
           <!-- Price History Chart -->
-          <div v-if="hasSearchedHotels" class="mb-6">
-            <PriceHistoryChart 
-              :historyData="hotelHistoryData" 
-              :loading="historyLoading" 
-              :error="historyError" 
-              :currentPrice="rawHotels.length > 0 ? Math.min(...rawHotels.map(h => h.pricePerNight)) : undefined"
+          <div v-if="hasSearchedHotels && !hasCalendarData" class="mb-6">
+            <PriceHistoryChart
+              :historyData="hotelHistoryData"
+              :loading="historyLoading"
+              :error="historyError"
             />
           </div>
-          
+
           <HotelList
             :hotels="filteredAndSortedHotels"
             :searched="hasSearchedHotels"
@@ -118,23 +119,22 @@
        <div v-else class="min-w-0 min-h-[600px]">
          <!-- Price Calendar (for flexible date searches) -->
          <div v-if="hasCalendarData" class="mb-6">
-           <PriceCalendar 
-             :calendarData="calendarData" 
-             :loading="false" 
-             :error="null"
+           <PriceCalendar
+             :calendarData="calendarData"
+             :loading="calendarLoading"
+             :error="calendarError"
            />
          </div>
-         
+
          <!-- Price History Chart -->
          <div v-if="hasSearchedHotels && !hasCalendarData" class="mb-6">
-           <PriceHistoryChart 
-             :historyData="hotelHistoryData" 
-             :loading="historyLoading" 
-             :error="historyError" 
-             :currentPrice="rawHotels.length > 0 ? Math.min(...rawHotels.map(h => h.pricePerNight)) : undefined"
+           <PriceHistoryChart
+             :historyData="hotelHistoryData"
+             :loading="historyLoading"
+             :error="historyError"
            />
          </div>
-         
+
          <HotelMapView :hotels="filteredAndSortedHotels" />
        </div>
 
@@ -157,9 +157,9 @@
             <div class="ok-badge w-12 h-12 rounded-full text-emerald-700 dark:text-emerald-300 flex items-center justify-center font-bold text-xl mb-4">
               ✓
             </div>
-            <h3 class="text-xl font-black text-slate-900 dark:text-slate-100 mb-2">Booking Initiated!</h3>
+            <h3 class="text-xl font-black text-slate-900 dark:text-slate-100 mb-2">Hotel Details</h3>
             <p class="text-sm text-slate-700 dark:text-slate-300 mb-4 leading-relaxed">
-              Your booking query for <strong class="text-slate-900 dark:text-slate-100">{{ selectedHotel?.name }}</strong> at <strong>{{ formatAmount(selectedHotel?.pricePerNight ?? 0) }}/night</strong> has been dispatched.
+              Selected hotel: <strong class="text-slate-900 dark:text-slate-100">{{ selectedHotel?.name }}</strong> at <strong>{{ formatAmount(selectedHotel?.pricePerNight ?? 0, selectedHotel?.currency) }}/night</strong> No reservation has been made.
             </p>
             <div class="glass glass-grain p-3 rounded-2xl mb-6 text-xs text-slate-700 dark:text-slate-300">
               Location: {{ selectedHotel?.location }}<br/>
@@ -179,7 +179,8 @@
      </Teleport>
 
 <!-- Alert Modal -->
-<div v-show="showAlertModal" class="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-slate-900/45 dark:bg-slate-950/70 backdrop-blur-md">
+<Teleport to="body">
+<div v-if="showAlertModal" class="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-slate-900/45 dark:bg-slate-950/70 backdrop-blur-md">
   <div class="glass-elevated glass-grain rounded-3xl p-6 max-w-md w-full relative select-none">
     <div class="flex justify-between items-start mb-4">
       <h3 class="text-xl font-black text-slate-900 dark:text-slate-100">Set Price Alert</h3>
@@ -196,7 +197,7 @@
           <label class="flex items-center space-x-2 text-sm font-medium text-slate-700 dark:text-slate-300">
             <input
               type="radio"
-              value="flight"
+              value="flight" disabled
               v-model="alertType"
               class="form-radio h-4 w-4 text-blue-600"
             />
@@ -231,11 +232,12 @@
           Current Search
         </label>
         <div class="text-sm text-slate-500 dark:text-slate-400">
-          {{ alertType === 'flight' ? `From: ${lastQuery?.destination || ''} To: ${lastQuery?.destinationName || ''}` : `Destination: ${lastQuery?.destination || ''}` }}
+          {{ `Destination: ${lastQuery?.destinationName || lastQuery?.destination || ''}` }}
         </div>
       </div>
       <div class="flex justify-end space-x-3">
         <button
+          type="button"
           @click="closeAlertModal"
           class="px-4 py-2 bg-slate-200 dark:bg-slate-700 text-slate-900 dark:text-slate-100 rounded-lg hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors"
         >
@@ -252,6 +254,7 @@
     </form>
   </div>
 </div>
+</Teleport>
 </div>
 </template>
 
@@ -259,11 +262,12 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useRoute, useRouter } from '#imports';
 import { CircleAlert } from 'lucide-vue-next';
-import type { Hotel, HotelSearchQuery, HotelFilterOptions, Alert } from '~/types';
+import type { Hotel, HotelSearchQuery, HotelFilterOptions, Alert } from '~~/types';
 import { HOTEL_DEFAULT_FILTERS, HOTEL_PRICE_RANGE } from '~/utils/filterDefaults';
 import { useCurrency } from '~/composables/useCurrency';
 import { useAlerts } from '~/composables/useAlerts';
 import { useAlertChecking } from '~/composables/useAlertChecking';
+import { usePriceCalendar } from '~/composables/usePriceCalendar';
 import { usePriceHistory } from '~/composables/usePriceHistory';
 import HotelMapView from '~/components/HotelMapView.vue';
 import PriceHistoryChart from '~/components/PriceHistoryChart.vue';
@@ -274,8 +278,9 @@ const { checkAlertPrices, checking: alertChecking } = useAlertChecking();
 const { historyData: hotelHistoryData, loading: historyLoading, error: historyError, fetchPriceHistory: fetchHotelHistory, formatDate, getPriceChangePercent } = usePriceHistory();
 
 // Calendar data for flexible date search
-const hasCalendarData = ref(false);
-const calendarData = ref<any>(null);
+const { calendarData, loading: calendarLoading, error: calendarError, fetchPriceCalendar } = usePriceCalendar();
+const hasCalendarData = computed(() => Boolean(lastQuery.value?.flexibleDates));
+let searchSequence = 0;
 
 const route = useRoute();
 const router = useRouter();
@@ -315,6 +320,7 @@ const isSearching = ref(false);
 const hasFailed = ref(false);
 const errorMessage = ref('');
 const wasCached = ref(false);
+const isMock = ref(false);
 const lastQuery = ref<HotelSearchQuery | null>(null);
 
 const showBookingModal = ref(false);
@@ -323,13 +329,15 @@ const viewType = ref<'list' | 'map'>('list');
 
 // Hotel Search triggers
 const handleHotelSearch = async (query: HotelSearchQuery, refresh = false) => {
+  const sequence = ++searchSequence;
   isSearching.value = true;
+  hasSearchedHotels.value = false;
   hasFailed.value = false;
   syncUrl(query);
   lastQuery.value = query;
-  
+
     try {
-      const response = await $fetch<{ success: boolean; data: Hotel[]; error?: string }>('/api/hotels', {
+      const httpResponse = await $fetch.raw<{ success: boolean; data: Hotel[]; error?: string; mock?: boolean }>('/api/hotels', {
         params: {
           destination: query.destination,
           checkIn: query.checkIn,
@@ -345,45 +353,31 @@ const handleHotelSearch = async (query: HotelSearchQuery, refresh = false) => {
       });
 
       // Surfaced so the user can tell cached results from a live lookup.
-      wasCached.value = response.headers?.get('x-cache') === 'HIT';
-      
+      if (sequence !== searchSequence) return;
+      const response = httpResponse._data;
+      isMock.value = Boolean(response?.mock);
+      wasCached.value = httpResponse.headers.get('x-cache') === 'HIT';
+
       if (response && response.success) {
-        // If flexible dates is requested, we expect price calendar data
+        rawHotels.value = response.data;
+        hasSearchedHotels.value = true;
+        const analysisParams = { destination: query.destination, checkIn: query.checkIn, checkOut: query.checkOut, adults: String(query.adults), rooms: String(query.rooms), type: 'hotel' };
         if (query.flexibleDates) {
-          // In a real implementation, the response would contain price calendar data
-          // For now, we'll store it in a separate variable and show the calendar UI
-          rawHotels.value = response.data; // This would actually be calendar data
-          hasSearchedHotels.value = true;
-          // Set a flag to indicate we have calendar data
-          hasCalendarData.value = true;
-          calendarData.value = response.data as any; // Assuming we have this ref
+          fetchPriceCalendar(analysisParams);
         } else {
-          rawHotels.value = response.data;
-          hasSearchedHotels.value = true;
-          
-          // Fetch price history for this search
-          if (lastQuery.value) {
-            fetchHotelHistory({
-              destination: lastQuery.value.destination,
-              destinationName: lastQuery.value.destinationName,
-              checkIn: lastQuery.value.checkIn,
-              checkOut: lastQuery.value.checkOut,
-              adults: lastQuery.value.adults || 2,
-              rooms: lastQuery.value.rooms || 1,
-              type: 'hotel'
-            });
-          }
+          fetchHotelHistory(analysisParams);
         }
       } else {
       hasFailed.value = true;
       errorMessage.value = response?.error || 'Failed to crawl hotel rates.';
     }
   } catch (err: any) {
+    if (sequence !== searchSequence) return;
     console.error('Failed to fetch hotels:', err);
     hasFailed.value = true;
     errorMessage.value = err.message || 'An unexpected connection error occurred.';
   } finally {
-    isSearching.value = false;
+    if (sequence === searchSequence) isSearching.value = false;
   }
 };
 
@@ -401,7 +395,7 @@ const activeChips = computed(() => {
   const f = hotelFilters.value;
 
   if (f.maxPrice !== undefined && f.maxPrice < HOTEL_PRICE_RANGE.max) {
-    chips.push({ key: 'maxPrice', label: `Under ${f.maxPrice}/night (USD)` });
+    chips.push({ key: 'maxPrice', label: `Under ${f.maxPrice}/night (${isMock.value ? 'USD' : currencyCode.value})` });
   }
   if (f.minRating !== undefined && f.minRating > 0) {
     chips.push({ key: 'minRating', label: `${f.minRating.toFixed(1)}+ rating` });
@@ -422,7 +416,7 @@ const filteredAndSortedHotels = computed(() => {
   let result = [...rawHotels.value];
 
   // Apply filters
-  if (hotelFilters.value.maxPrice) {
+  if (hotelFilters.value.maxPrice !== undefined && hotelFilters.value.maxPrice < HOTEL_PRICE_RANGE.max) {
     result = result.filter(h => h.pricePerNight <= hotelFilters.value.maxPrice!);
   }
   if (hotelFilters.value.minRating) {
@@ -452,6 +446,7 @@ const refreshHotels = () => {
 };
 
 const handleCurrencyChange = () => {
+  hotelFilters.value.maxPrice = HOTEL_PRICE_RANGE.max;
   if (lastQuery.value) {
     handleHotelSearch(lastQuery.value, true);
   }

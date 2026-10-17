@@ -1,3 +1,4 @@
+import { rateLimit, clientIp } from '../utils/rateLimit';
 import type { HotelAutocompleteSuggestion } from '../../types';
 
 // Curated high-fidelity mock suggestions for offline development
@@ -65,24 +66,24 @@ const MOCK_SUGGESTIONS: HotelAutocompleteSuggestion[] = [
   {
     id: 'london_city',
     name: 'London, United Kingdom',
-    type: 'capital city in the UK',
+    type: 'city',
   },
   {
     id: 'paris_city',
     name: 'Paris, France',
-    type: 'capital city in France',
+    type: 'city',
   },
   {
     id: 'tokyo_city',
     name: 'Tokyo, Japan',
-    type: 'capital city in Japan',
+    type: 'city',
   },
 ];
 
 export default defineEventHandler(async (event) => {
   const query = getQuery(event);
   const config = useRuntimeConfig(event);
-  const q = (query.q as string || '').trim();
+  const q = queryText(query.q, 'q');
 
   if (!q) {
     return {
@@ -94,7 +95,7 @@ export default defineEventHandler(async (event) => {
   const limit = RATE_LIMIT.hotelsAutocomplete;
   const gate = rateLimit('hotels-autocomplete', clientIp(event), limit.limit, limit.windowMs);
   if (!gate.allowed) {
-    setHeader(event, 'Retry-After', String(gate.retryAfterSeconds));
+    setHeader(event, 'Retry-After', gate.retryAfterSeconds);
     throw createError({
       statusCode: 429,
       statusMessage: 'Too many destination searches. Please slow down.',
@@ -164,7 +165,7 @@ export default defineEventHandler(async (event) => {
     cacheSet(key, result, CACHE_TTL.hotelsAutocomplete);
     return result;
   } catch (error: any) {
-    console.error('Error querying SerpApi Google Hotels Autocomplete:', error);
+    console.error('Autocomplete provider request failed:', error.statusCode || 'connection error');
     
     // Fall back to filtered mock suggestions in case of API failure
     const filtered = MOCK_SUGGESTIONS.filter((item) =>
@@ -175,7 +176,7 @@ export default defineEventHandler(async (event) => {
     return {
       success: true,
       data: filtered,
-      error: error.message || 'Failed to fetch suggestions from SerpApi. Local database fallback active.',
+      error: 'Location provider unavailable. Showing bundled suggestions.',
       mock: true,
     };
   }

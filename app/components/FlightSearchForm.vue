@@ -114,9 +114,10 @@
 </template>
 
 <script setup lang="ts">
+import { localDate } from '~/utils/dates';
 import { ref, computed } from 'vue';
 import { ArrowRightLeft, Search, Crosshair, Loader2 } from 'lucide-vue-next';
-import type { SearchQuery, LocationSuggestion } from '~/types';
+import type { SearchQuery, LocationSuggestion } from '~~/types';
 
 const props = defineProps<{
   /** Optional initial state, used to hydrate the form from a shareable URL. */
@@ -131,7 +132,7 @@ const emit = defineEmits<{
 // Form and query state
 const tomorrow = new Date();
 tomorrow.setDate(tomorrow.getDate() + 1);
-const defaultDate = tomorrow.toISOString().split('T')[0];
+const defaultDate = localDate(tomorrow);
 
 const form = ref<SearchQuery>({
   from: props.initial?.from || '',
@@ -143,6 +144,7 @@ const form = ref<SearchQuery>({
 
 // Flexible dates state
 const flexibleDates = ref(false);
+const isLocating = ref(false);
 
 // Trip type state. A URL carrying a return date implies a round trip.
 const isRoundTrip = ref(Boolean(props.initial?.returnDate));
@@ -159,13 +161,13 @@ const setTripType = (val: boolean) => {
     // Default return date to 7 days after departure date
     const depDate = new Date(form.value.date);
     depDate.setDate(depDate.getDate() + 7);
-    form.value.returnDate = depDate.toISOString().split('T')[0];
+    form.value.returnDate = localDate(depDate);
   }
   notifyChange();
 };
 
 const todayStr = computed(() => {
-  return new Date().toISOString().split('T')[0];
+  return localDate();
 });
 
 // Popular location list for initial display
@@ -186,7 +188,7 @@ const resolveLocationId = async (locationName: string): Promise<LocationSuggesti
       params: { q: locationName },
     });
     if (searchRes?.success && searchRes.data.length > 0) {
-      return searchRes.data[0];
+      return searchRes.data[0] ?? null;
     }
   } catch (err) {
     console.error('Failed to resolve location id:', err);
@@ -246,6 +248,7 @@ const swapLocations = () => {
   const tempId = form.value.from;
   form.value.from = form.value.to;
   form.value.to = tempId;
+  notifyChange();
 };
 
 // Emit final query
@@ -256,6 +259,7 @@ const submitSearch = () => {
     return;
   }
   
+  if (form.value.returnDate && form.value.returnDate < form.value.date) { alert('Return date must not precede departure.'); return; }
   // Clone to avoid mutation problems
   const payload = { ...form.value };
   if (!isRoundTrip.value) {

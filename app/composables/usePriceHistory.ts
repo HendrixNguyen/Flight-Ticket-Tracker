@@ -19,8 +19,10 @@ export const usePriceHistory = () => {
   const historyData = ref<PriceHistoryData | null>(null);
   const loading = ref(false);
   const error = ref<string | null>(null);
+  let sequence = 0;
 
   const fetchPriceHistory = async (params: Record<string, string>) => {
+    const current = ++sequence;
     loading.value = true;
     error.value = null;
     try {
@@ -31,18 +33,19 @@ export const usePriceHistory = () => {
         : `/api/flights-history?${queryString}`;
       
       const data = await $fetch<PriceHistoryData>(endpoint);
-      historyData.value = data;
+      if (current === sequence) historyData.value = data;
     } catch (e: any) {
+      if (current !== sequence) return;
       error.value = e.message || 'Failed to fetch price history';
       console.error('Failed to fetch price history:', e);
     } finally {
-      loading.value = false;
+      if (current === sequence) loading.value = false;
     }
   };
 
   // Format date for display
   const formatDate = (dateString: string): string => {
-    const date = new Date(dateString);
+    const date = new Date(dateString + 'T00:00:00');
     return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
   };
 

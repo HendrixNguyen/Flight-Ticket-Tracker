@@ -34,7 +34,7 @@ function generateMockPriceHistory(basePrice: number, days: number = 30): {
     price = Math.max(basePrice * 0.4, Math.min(basePrice * 2.2, price));
 
     points.push({
-      date: date.toISOString().split('T')[0],
+      date: date.toISOString().slice(0, 10),
       price: Math.round(price * 100) / 100,
     });
 
@@ -92,9 +92,9 @@ export default defineEventHandler((event) => {
 
   // Use destination or route to seed the random data generation consistently
   const seed =
-    (query.destination || query.from || query.to || 'unknown') +
-    (query.checkIn || query.date || '') +
-    (query.checkOut || query.returnDate || '');
+    String(query.destination || query.from || query.to || 'unknown') +
+    String(query.checkIn || query.date || '') +
+    String(query.checkOut || query.returnDate || '');
 
   // Simple hash function for consistent seeding
   let hash = 0;

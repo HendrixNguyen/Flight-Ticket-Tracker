@@ -19,7 +19,7 @@
         <div class="flex items-center gap-1.5 mt-1 flex-wrap">
           <span class="text-xs font-semibold text-slate-600 dark:text-slate-300">FL{{ flight.flightNumber }}</span>
           <span v-if="flight.airplane" class="glass text-[10px] font-extrabold uppercase tracking-wide text-slate-600 dark:text-slate-300 px-1.5 py-0.5 rounded-md truncate max-w-[140px]" :title="flight.airplane">
-            {{ flight.airplane.split('(')[0].trim() }}
+            {{ flight.airplane.split('(')[0]?.trim() }}
           </span>
         </div>
       </div>
@@ -72,7 +72,7 @@
      <div class="flex sm:flex-col items-center sm:items-end justify-between sm:justify-center gap-3 sm:w-1/5">
        <div class="text-left sm:text-right">
          <p class="text-xs text-slate-600 dark:text-slate-300 font-bold uppercase tracking-wider">Price per adult</p>
-         <p class="text-3xl font-black text-slate-900 dark:text-slate-100">{{ formatAmount(flight.price) }}</p>
+         <p class="text-3xl font-black text-slate-900 dark:text-slate-100">{{ formatAmount(flight.price, flight.currency) }}</p>
          <p class="text-[10px] font-semibold text-slate-600 dark:text-slate-400">{{ flight.currency }}</p>
        </div>
        <!-- The CTA is the one element on the card that must not be glass: a
@@ -95,7 +95,7 @@
 
 <script setup lang="ts">
 import { Plane } from 'lucide-vue-next';
-import type { Flight } from '~/types';
+import type { Flight } from '~~/types';
 import { useCurrency } from '~/composables/useCurrency';
 import { useTrips } from '~/composables/useTrips';
 
@@ -104,7 +104,7 @@ const props = defineProps<{
 }>();
 
 const { formatAmount } = useCurrency();
-const { addFlightToTrip } = useTrips();
+const { saveItem } = useTrips();
 
 const formatTime = (isoString: string) => {
   return new Intl.DateTimeFormat('en-US', {
@@ -138,6 +138,7 @@ const dayOffset = (flight: Flight): number => {
 
 /** Short timezone label, e.g. "PDT" - lets the user interpret the local times. */
 const timeZone = (isoString: string): string => {
+  if (!/(Z|[+-]\d{2}:?\d{2})$/.test(isoString)) return 'Airport local time';
   const date = new Date(isoString);
   if (Number.isNaN(date.getTime())) return '';
   const parts = new Intl.DateTimeFormat('en-US', { timeZoneName: 'short' }).formatToParts(date);
@@ -147,10 +148,8 @@ const timeZone = (isoString: string): string => {
 /** Save flight to trip */
 const saveToTrip = async () => {
   try {
-    // In a real implementation, we would show a trip selector dialog
-    // For now, we'll just add to a default trip or show a message
-    alert('Save to Trip functionality would show a trip selector here');
-    // const trip = await addFlightToTrip('trip-id', props.flight);
+    await saveItem(props.flight, 'flight');
+    alert('Saved to My Trip.');
   } catch (e) {
     console.error('Failed to save flight to trip:', e);
   }

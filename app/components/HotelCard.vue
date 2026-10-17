@@ -23,7 +23,7 @@
 
       <!-- Price overlay for mobile -->
       <div class="md:hidden absolute bottom-4 right-4 bg-blue-600 px-4 py-1.5 rounded-2xl text-white font-black text-lg">
-        {{ formatAmount(hotel.pricePerNight) }}<span class="text-xs font-normal text-blue-100"> / night</span>
+        {{ formatAmount(hotel.pricePerNight, hotel.currency) }}<span class="text-xs font-normal text-blue-100"> / night</span>
       </div>
     </div>
 
@@ -83,12 +83,12 @@
         <div class="hidden md:block">
           <p class="text-[10px] text-slate-600 dark:text-slate-300 font-extrabold uppercase tracking-widest leading-none">Price per night</p>
           <div class="flex items-baseline gap-1 mt-1">
-            <span class="text-3xl font-black text-slate-900 dark:text-slate-100">{{ formatAmount(hotel.pricePerNight) }}</span>
+            <span class="text-3xl font-black text-slate-900 dark:text-slate-100">{{ formatAmount(hotel.pricePerNight, hotel.currency) }}</span>
             <span class="text-xs font-semibold text-slate-600 dark:text-slate-400">{{ hotel.currency }}</span>
           </div>
           <!-- Stay Total Price (if check-in/out ranges are set) -->
           <p v-if="hotel.totalPrice" class="text-xs font-bold text-blue-700 dark:text-blue-300 mt-0.5">
-            Total stay: {{ formatAmount(hotel.totalPrice) }}
+            Total stay: {{ formatAmount(hotel.totalPrice, hotel.currency) }}
           </p>
         </div>
 
@@ -97,7 +97,7 @@
              repeating here. -->
         <div class="md:hidden">
           <p v-if="hotel.totalPrice" class="text-xs font-bold text-blue-700 dark:text-blue-300">
-            Stay total: {{ formatAmount(hotel.totalPrice) }}
+            Stay total: {{ formatAmount(hotel.totalPrice, hotel.currency) }}
           </p>
         </div>
 
@@ -123,12 +123,12 @@
 
 <script setup lang="ts">
 import { Star, MapPin } from 'lucide-vue-next';
-import type { Hotel } from '~/types';
+import type { Hotel } from '~~/types';
 import { useCurrency } from '~/composables/useCurrency';
 import { useTrips } from '~/composables/useTrips';
 
 const { formatAmount } = useCurrency();
-const { addHotelToTrip } = useTrips();
+const { saveItem } = useTrips();
 
 const props = defineProps<{
   hotel: Hotel;
@@ -145,10 +145,8 @@ const handleBooking = () => {
 /** Save hotel to trip */
 const saveToTrip = async () => {
   try {
-    // In a real implementation, we would show a trip selector dialog
-    // For now, we'll just add to a default trip or show a message
-    alert('Save to Trip functionality would show a trip selector here');
-    // const trip = await addHotelToTrip('trip-id', props.hotel);
+    await saveItem(props.hotel, 'hotel');
+    alert('Saved to My Trip.');
   } catch (e) {
     console.error('Failed to save hotel to trip:', e);
   }

@@ -86,40 +86,19 @@
           </div>
         </div>
       </div>
-      </section>
+  </section>
 </template>
 
 <script setup lang="ts">
-import { onMounted, onUnmounted } from 'vue';
+import { onMounted } from 'vue';
 import { CircleAlert } from 'lucide-vue-next';
 import { useTrips } from '~/composables/useTrips';
-
-const { trips, loading, error, fetchTrips, deleteTrip } = useTrips();
-
+const { trips, loading, error, fetchTrips, deleteTrip, updateTrip } = useTrips();
 const editTrip = async (id: string) => {
-  // In a full implementation, we would navigate to an edit trip page
-  // For now, we'll just show an alert
-  alert('Edit trip functionality would be implemented here');
+  const trip = trips.value.find(t => t.id === id);
+  const name = window.prompt('Trip name', trip?.name);
+  if (name?.trim()) await updateTrip(id, { name: name.trim() });
 };
-
-// Handle currency change
-const handleCurrencyChange = () => {
-  // Refetch trips to ensure currency is consistent
-  fetchTrips();
-};
-
-// Format date for display
-const formatDate = (dateString: string): string => {
-  const date = new Date(dateString);
-  return date.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
-};
-
-// Fetch trips on mount
-onMounted(() => {
-  fetchTrips();
-  window.addEventListener('currency-changed', handleCurrencyChange);
-});
-onUnmounted(() => {
-  window.removeEventListener('currency-changed', handleCurrencyChange);
-});
+const formatDate = (date: string) => new Date(date).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+onMounted(fetchTrips);
 </script>

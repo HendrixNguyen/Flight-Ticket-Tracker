@@ -168,9 +168,10 @@
 </template>
 
 <script setup lang="ts">
+import { localDate } from '~/utils/dates';
 import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { Search, Crosshair, Loader2, Users, ChevronDown } from 'lucide-vue-next';
-import type { HotelSearchQuery, HotelAutocompleteSuggestion } from '~/types';
+import type { HotelSearchQuery, HotelAutocompleteSuggestion, ComboboxSuggestion } from '~~/types';
 
 const emit = defineEmits<{
   (e: 'search', query: HotelSearchQuery): void;
@@ -189,13 +190,13 @@ const guestSelectorContainer = ref<HTMLElement | null>(null);
 const defaultCheckInDate = (): string => {
   const tomorrow = new Date();
   tomorrow.setDate(tomorrow.getDate() + 1);
-  return tomorrow.toISOString().split('T')[0];
+  return localDate(tomorrow);
 };
 
 const defaultCheckOutDate = (): string => {
   const future = new Date();
   future.setDate(future.getDate() + 4);
-  return future.toISOString().split('T')[0];
+  return localDate(future);
 };
 
 const form = ref<HotelSearchQuery>({
@@ -215,7 +216,7 @@ const notifyChange = () => {
 };
 
 const todayStr = computed(() => {
-  return new Date().toISOString().split('T')[0];
+  return localDate();
 });
 
 // Autocomplete and selection states
@@ -258,9 +259,9 @@ const decrementRooms = () => {
 
 // Destination selection. Hotels resolve to a property token when available so
 // the search targets the specific property rather than the whole city.
-const onDestinationSelected = (suggestion: HotelAutocompleteSuggestion) => {
+const onDestinationSelected = (suggestion: ComboboxSuggestion) => {
   const token = 'propertyToken' in suggestion ? suggestion.propertyToken : undefined;
-  form.value.destination = token || suggestion.name;
+  form.value.destination = suggestion.name;
   form.value.destinationName = suggestion.name;
   notifyChange();
 };
@@ -268,6 +269,7 @@ const onDestinationSelected = (suggestion: HotelAutocompleteSuggestion) => {
 // v-model fires before @select, so keep the URL in step with the typed value
 // and let the select handler refine it once a suggestion is chosen.
 const onDestinationChanged = () => {
+  form.value.destinationName = form.value.destination;
   notifyChange();
 };
 
@@ -297,7 +299,7 @@ const requestLocation = () => {
           });
 
           if (searchRes?.success && searchRes.data.length > 0) {
-            onDestinationSelected(searchRes.data[0]);
+            onDestinationSelected(searchRes.data[0]!);
           } else {
             form.value.destination = locationName;
             form.value.destinationName = locationName;
@@ -341,6 +343,7 @@ onUnmounted(() => {
 const submitSearch = () => {
   if (!form.value.destination || !form.value.checkIn || !form.value.checkOut) return;
   
+  if (form.value.checkOut <= form.value.checkIn) { alert('Check-out must follow check-in.'); return; }
   // Clone to avoid mutation problems
   const payload = { ...form.value };
   
