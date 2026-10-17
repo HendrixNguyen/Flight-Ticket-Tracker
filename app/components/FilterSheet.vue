@@ -4,20 +4,26 @@
     <button
       type="button"
       @click="openSheet"
-      class="glass glass-trigger lg:hidden w-full flex items-center justify-center gap-2 px-4 py-3 rounded-2xl text-blue-700 dark:text-blue-300 font-bold text-sm transition-colors cursor-pointer outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 dark:focus-visible:outline-blue-300"
+      class="glass glass-trigger w-full flex items-center justify-center gap-2 px-4 py-3 rounded-2xl text-blue-700 dark:text-blue-300 font-bold text-sm transition-colors cursor-pointer outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 dark:focus-visible:outline-blue-300"
+      :class="hotelLayout ? 'lg:hidden fixed bottom-[max(1rem,env(safe-area-inset-bottom))] left-4 right-4 z-50 !w-auto' : 'lg:hidden'"
+      :aria-expanded="isOpen"
+      aria-haspopup="dialog"
     >
       <SlidersHorizontal class="w-4 h-4" aria-hidden="true" />
       Filters
       <span
-        v-if="count > 0"
-        class="rounded-full bg-blue-600 text-white px-2 py-0.5 text-xs font-black"
+        :class="{ invisible: count === 0 }"
+        class="min-w-7 text-center rounded-full bg-blue-600 text-white px-2 py-0.5 text-xs font-black"
       >{{ count }}</span>
     </button>
 
     <!-- Desktop: inline sidebar, no sheet -->
-    <div class="hidden lg:block">
+    <component
+      :is="hotelLayout ? 'aside' : 'div'"
+      :class="hotelLayout ? 'hidden lg:block w-full max-h-[calc(100vh-6rem)] overflow-y-auto overscroll-contain [scrollbar-gutter:stable]' : 'hidden lg:block'"
+    >
       <slot />
-    </div>
+    </component>
 
     <!-- Mobile bottom sheet.
 
@@ -32,7 +38,7 @@
       <Transition name="sheet">
         <div
           v-if="isOpen"
-          class="lg:hidden fixed inset-0 z-[60] flex items-end"
+          class="fixed inset-0 z-[60] flex items-end lg:hidden"
           role="dialog"
           aria-modal="true"
           :aria-label="title"
@@ -48,7 +54,7 @@
 
           <div
             ref="sheetRef"
-            class="glass-elevated glass-grain relative w-full max-h-[85vh] overflow-y-auto rounded-t-3xl"
+            class="glass-elevated glass-grain relative w-full max-w-[100vw] max-h-[85dvh] overflow-y-auto overscroll-contain rounded-t-3xl"
           >
             <!-- Sticky bars repeat the panel's own `.glass-elevated` rather than
                  settling for `.glass`: at 0.38 fill, result counts and field
@@ -72,7 +78,7 @@
               <slot />
             </div>
 
-            <div class="sheet-bar sheet-bar-foot sticky bottom-0 z-10 glass-elevated px-5 py-4">
+            <div class="sheet-bar sheet-bar-foot pb-[max(1rem,env(safe-area-inset-bottom))] sticky bottom-0 z-10 glass-elevated px-5 py-4">
               <button
                 type="button"
                 @click="closeSheet"
@@ -89,10 +95,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, nextTick, onUnmounted } from 'vue';
+import { ref, watch, nextTick, onMounted, onUnmounted } from 'vue';
 import { SlidersHorizontal, X } from 'lucide-vue-next';
 
 const props = withDefaults(defineProps<{
+  hotelLayout?: boolean;
   title?: string;
   /** Number of active filters, shown on the trigger. */
   count?: number;
@@ -145,16 +152,28 @@ const handleKeydown = (event: KeyboardEvent) => {
 watch(isOpen, (open) => {
   if (open) {
     document.addEventListener('keydown', handleKeydown);
+    previousOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
   } else {
     document.removeEventListener('keydown', handleKeydown);
-    document.body.style.overflow = '';
+    document.body.style.overflow = previousOverflow;
   }
 });
 
+let desktopQuery: MediaQueryList | undefined;
+let previousOverflow = '';
+const handleDesktopChange = () => {
+  if (desktopQuery?.matches && isOpen.value) closeSheet();
+};
+onMounted(() => {
+  desktopQuery = window.matchMedia('(min-width: 1024px)');
+  desktopQuery.addEventListener('change', handleDesktopChange);
+});
+
 onUnmounted(() => {
+  desktopQuery?.removeEventListener('change', handleDesktopChange);
   document.removeEventListener('keydown', handleKeydown);
-  document.body.style.overflow = '';
+  if (isOpen.value) document.body.style.overflow = previousOverflow;
 });
 </script>
 

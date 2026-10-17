@@ -3,13 +3,13 @@
     <!-- Trip Type Toggle Slider. The track is a `.glass` pill; the active
          segment is separated by colour, weight AND an inset ring rather than
          by fill alpha alone, so it still reads on a translucent track. -->
-    <div class="flex justify-start">
+    <div class="flex flex-wrap items-center gap-x-6 gap-y-3">
       <div class="glass glass-grain flex p-1 rounded-full" role="group" aria-label="Trip type">
         <button
           type="button"
           @click="setTripType(false)"
           :aria-pressed="!isRoundTrip"
-          class="px-4 py-1.5 rounded-full text-xs transition-all cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 dark:focus-visible:outline-blue-300"
+          class="px-4 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-colors cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 dark:focus-visible:outline-blue-300"
           :class="[!isRoundTrip ? 'trip-segment-active' : 'text-slate-600 dark:text-slate-300 hover:text-blue-700 dark:hover:text-blue-300']"
         >
           One-Way
@@ -18,26 +18,21 @@
           type="button"
           @click="setTripType(true)"
           :aria-pressed="isRoundTrip"
-          class="px-4 py-1.5 rounded-full text-xs transition-all cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 dark:focus-visible:outline-blue-300"
+          class="px-4 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-colors cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 dark:focus-visible:outline-blue-300"
           :class="[isRoundTrip ? 'trip-segment-active' : 'text-slate-600 dark:text-slate-300 hover:text-blue-700 dark:hover:text-blue-300']"
         >
           Round-Trip (2-Way)
         </button>
       </div>
+      <label class="flex min-h-11 flex-wrap items-center gap-2 rounded-xl border border-transparent px-2 text-sm font-medium text-slate-600 dark:text-slate-300 cursor-pointer">
+        <input type="checkbox" v-model="flexibleDates" class="h-4 w-4 shrink-0 accent-blue-600 dark:accent-blue-400 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600" aria-describedby="flexible-dates-hint">
+        <span>Flexible Dates</span>
+        <span id="flexible-dates-hint" class="text-xs text-slate-500 dark:text-slate-400" :class="{ invisible: !flexibleDates }">(±3 days)</span>
+      </label>
     </div>
 
     <!-- Main Search Fields -->
-    <form @submit.prevent="submitSearch" class="flex flex-col lg:flex-row gap-4 w-full items-end">
-      <!-- Flexible Date Toggle -->
-      <div class="flex items-center gap-2 mb-2 lg:mb-0">
-        <label class="text-sm font-medium text-slate-600 dark:text-slate-300 flex items-center gap-1">
-          <input type="checkbox" v-model="flexibleDates" class="form-checkbox h-4 w-4 text-blue-600">
-          <span>Flexible Dates</span>
-        </label>
-        <span v-if="flexibleDates" class="text-xs text-slate-500 dark:text-slate-400">
-          (±3 days)
-        </span>
-      </div>
+    <form @submit.prevent="submitSearch" class="search-fields grid grid-cols-1 md:grid-cols-2 gap-4 w-full items-end">
 <!-- From Location Input -->
       <LocationCombobox
         ref="fromCombobox"
@@ -46,7 +41,7 @@
         label="From"
         placeholder="Departure City/Airport (e.g. SFO)"
         :popular-locations="POPULAR_LOCATIONS"
-        class="flex-1"
+        class="min-w-0"
       >
         <template #trailing>
           <button
@@ -69,7 +64,7 @@
         type="button"
         @click="swapLocations"
         aria-label="Swap origin and destination"
-        class="glass swap-button hidden lg:flex p-3 rounded-full mb-1 transition-all group cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 dark:focus-visible:outline-blue-300"
+        class="glass swap-button hidden xl:flex h-[50px] w-[50px] items-center justify-center rounded-full transition-all group cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 dark:focus-visible:outline-blue-300"
       >
         <ArrowRightLeft class="w-5 h-5 text-slate-600 dark:text-slate-200 group-hover:text-blue-600 dark:group-hover:text-blue-300 transition-colors" />
       </button>
@@ -82,11 +77,11 @@
         label="To"
         placeholder="Destination City/Airport (e.g. JFK)"
         :popular-locations="POPULAR_LOCATIONS"
-        class="flex-1"
+        class="min-w-0"
       />
       
       <!-- Premium Custom Date / Range Pickers -->
-      <div class="flex-[1.5] w-full relative">
+      <div class="date-fields min-w-0 md:col-span-2 xl:col-span-1 w-full relative">
         <CustomDateRangePicker
           v-if="isRoundTrip"
           v-model:startDate="form.date"
@@ -109,7 +104,7 @@
            works here -- and reads better than an outline against solid blue. -->
       <button 
         type="submit" 
-        class="w-full lg:w-auto bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-8 rounded-xl transition-colors shadow-md hover:shadow-lg flex items-center justify-center gap-2 mb-1 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-slate-900"
+        class="md:col-span-2 xl:col-span-1 w-full h-[50px] bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-8 rounded-xl transition-colors shadow-md hover:shadow-lg flex items-center justify-center gap-2 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-slate-900"
       >
         <Search class="w-5 h-5" />
         <span>Search Flights</span>
@@ -279,6 +274,14 @@ const submitSearch = () => {
 </script>
 
 <style scoped>
+@media (min-width: 1280px) {
+  .search-fields {
+    grid-template-columns: minmax(0, 1fr) 50px minmax(0, 1fr) minmax(0, 1.6fr) auto;
+  }
+}
+.date-fields :deep(button) { min-width: 0; }
+.date-fields :deep(button > span) { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
 /* The active segment sits on a `.glass` track, so its fill has to come from a
    scoped rule: a `bg-*` utility would outrank the primitive and flatten it,
    leaving the two segments indistinguishable. Colour + weight +

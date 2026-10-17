@@ -27,6 +27,7 @@ export default defineNuxtConfig({
   app: {
     head: {
       link: [
+        { rel: 'icon', type: 'image/svg+xml', href: '/favicon.svg' },
         // `--font-sans` declares Inter, but nothing was ever loading it, so the
         // app silently fell back to system-ui. Inter is a variable font on
         // Google Fonts, so one stylesheet covers the 400-900 range the app
@@ -49,6 +50,7 @@ export default defineNuxtConfig({
           href: 'https://fonts.googleapis.com/css2?family=Inter:wght@400..900&display=swap',
         },
       ],
+      title: 'Nuvora — Flights & Stays',
       script: [
         {
           // Must stay inline: an external file cannot run before first paint.

@@ -564,6 +564,72 @@ body {
     linear-gradient(168deg, #0b1424 0%, #070d1a 46%, #0a0e1e 74%, #0f0a1c 100%);
 }
 
+/* Route-aware travel photography. The first gradient is a contrast veil for
+   content; the image remains visible while glass surfaces and text stay clear. */
+.canvas.canvas-flights,
+.canvas.canvas-hotels {
+  background-attachment: fixed;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
+}
+
+.canvas.canvas-flights {
+  background-image:
+    linear-gradient(rgba(244, 248, 255, 0.3), rgba(237, 244, 255, 0.4)),
+    url('/backgrounds/flights-dawn.webp');
+}
+
+.canvas.canvas-hotels {
+  background-position: right center;
+  background-image:
+    linear-gradient(rgba(255, 248, 238, 0.16), rgba(241, 247, 255, 0.24)),
+    url('/backgrounds/hotels-dawn.webp');
+}
+
+.dark .canvas.canvas-flights {
+  background-image:
+    linear-gradient(rgba(3, 8, 24, 0.28), rgba(7, 10, 30, 0.5)),
+    url('/backgrounds/flights-gloaming.webp');
+}
+
+.dark .canvas.canvas-hotels {
+  background-image:
+    linear-gradient(rgba(4, 7, 25, 0.18), rgba(8, 9, 30, 0.34)),
+    url('/backgrounds/hotels-gloaming.webp');
+}
+
+.route-backdrop {
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
+}
+
+.canvas-flights .route-backdrop {
+  background-image:
+    linear-gradient(rgba(244, 248, 255, 0.3), rgba(237, 244, 255, 0.4)),
+    url('/backgrounds/flights-dawn.webp');
+}
+
+.canvas-hotels .route-backdrop {
+  background-image:
+    linear-gradient(rgba(255, 248, 238, 0.12), rgba(241, 247, 255, 0.18)),
+    url('/backgrounds/hotels-dawn.webp');
+  background-position: right center;
+}
+
+.dark .canvas-flights .route-backdrop {
+  background-image:
+    linear-gradient(rgba(3, 8, 24, 0.28), rgba(7, 10, 30, 0.5)),
+    url('/backgrounds/flights-gloaming.webp');
+}
+
+.dark .canvas-hotels .route-backdrop {
+  background-image:
+    linear-gradient(rgba(4, 7, 25, 0.14), rgba(8, 9, 30, 0.26)),
+    url('/backgrounds/hotels-gloaming.webp');
+}
+
 /* Opt-in grain for individual glass surfaces, for a component that wants the
    material to read as frosted rather than polished. Applied as a background
    layer, so -- exactly as on the canvas -- it can never sit on top of, or
@@ -625,4 +691,16 @@ body {
   :root {
     --glass-grain-image: none;
   }
+}
+
+/* Reserve the page scrollbar as filters change the result count. */
+html {
+  scrollbar-gutter: stable;
+  max-width: 100vw;
+  overflow-x: clip;
+}
+body {
+  min-width: 0;
+  max-width: 100vw;
+  overflow-x: clip;
 }

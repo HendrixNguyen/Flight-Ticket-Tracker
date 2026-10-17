@@ -44,7 +44,7 @@
       <TransitionGroup 
         name="list" 
         tag="div" 
-        class="space-y-4"
+        class="relative space-y-4"
       >
         <HotelCard 
           v-for="hotel in hotels" 
@@ -124,13 +124,13 @@ const handleBooking = (hotel: Hotel) => {
 .list-move,
 .list-enter-active,
 .list-leave-active {
-  transition: all 0.5s ease;
+  transition: transform 0.5s ease, opacity 0.5s ease;
 }
 
 .list-enter-from,
 .list-leave-to {
   opacity: 0;
-  transform: translateX(30px);
+  transform: translateY(12px);
 }
 
 /* Kept: absolute positioning on the leaving node is what stops the remaining
@@ -138,6 +138,7 @@ const handleBooking = (hotel: Hotel) => {
    removed to "simplify" the transition, or filtering will jump. */
 .list-leave-active {
   position: absolute;
+  width: 100%;
 }
 
 /* Reduced motion keeps the fade -- it is the part that communicates the change

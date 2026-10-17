@@ -1,5 +1,5 @@
 <template>
-  <div class="hotel-card glass-card glass-grain rounded-3xl overflow-hidden group flex flex-col md:flex-row gap-6 relative">
+  <div class="hotel-card w-full min-w-0 glass-card glass-grain rounded-3xl overflow-hidden group flex flex-col md:flex-row gap-6 relative">
     
     <!-- Hotel Photo Section -->
     <div class="w-full md:w-1/3 h-52 md:h-auto min-h-[220px] relative overflow-hidden flex-shrink-0">
@@ -28,7 +28,7 @@
     </div>
 
     <!-- Hotel Details -->
-    <div class="flex-1 p-6 md:p-4 flex flex-col justify-between gap-4">
+    <div class="flex-1 min-w-0 p-6 md:p-4 flex flex-col justify-between gap-4">
       <div>
         <!-- Rating and Reviews -->
         <div class="flex items-center gap-2 mb-2">
@@ -65,13 +65,13 @@
           <span 
             v-for="amenity in hotel.amenities.slice(0, 4)" 
             :key="amenity"
-            class="glass text-[10px] font-extrabold uppercase tracking-wide text-slate-600 dark:text-slate-300 px-2 py-1 rounded-md"
+            class="glass max-w-full break-words text-[10px] font-extrabold uppercase tracking-wide text-slate-600 dark:text-slate-300 px-2 py-1 rounded-md"
           >
             {{ amenity }}
           </span>
           <span 
             v-if="hotel.amenities.length > 4" 
-            class="glass text-[10px] font-extrabold uppercase tracking-wide text-blue-700 dark:text-blue-300 px-2 py-1 rounded-md"
+            class="glass max-w-full break-words text-[10px] font-extrabold uppercase tracking-wide text-blue-700 dark:text-blue-300 px-2 py-1 rounded-md"
           >
             +{{ hotel.amenities.length - 4 }} More
           </span>
@@ -79,7 +79,7 @@
       </div>
 
       <!-- Price & Actions Block -->
-      <div class="hairline-row flex items-end justify-between gap-4 pt-4 mt-2">
+      <div class="hairline-row flex flex-wrap items-end justify-between gap-4 pt-4 mt-2">
         <div class="hidden md:block">
           <p class="text-[10px] text-slate-600 dark:text-slate-300 font-extrabold uppercase tracking-widest leading-none">Price per night</p>
           <div class="flex items-baseline gap-1 mt-1">
