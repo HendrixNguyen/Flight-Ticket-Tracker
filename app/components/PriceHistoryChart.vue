@@ -137,7 +137,7 @@ const linePoints = computed(() => {
     .map((p, i) => {
       const x = 10 + (i / (points.length - 1)) * 80;
       const y = 50 - ((p.price - minPrice) / range) * 40;
-      return `${x},${y}`;
+      return x + "," + y;
     })
     .join(' ');
 });
