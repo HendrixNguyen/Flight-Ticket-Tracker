@@ -51,7 +51,7 @@ export const cacheKey = (namespace: string, params: Record<string, unknown>): st
     .filter((key) => params[key] !== undefined && params[key] !== null && params[key] !== '')
     // Sort so key order never affects the result.
     .sort()
-    .map((key) => `${key}=${String(params[key]).trim().toLowerCase()}`);
+    .map((key) => `${encodeURIComponent(key)}=${encodeURIComponent(String(params[key]).trim())}`);
 
   return `${namespace}:${parts.join('&')}`;
 };

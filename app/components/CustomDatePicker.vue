@@ -121,13 +121,13 @@ const monthNames = [
 ];
 
 // Internal year/month cursor
-const dateObj = props.modelValue ? new Date(props.modelValue) : new Date();
+const dateObj = props.modelValue ? new Date(props.modelValue + 'T00:00:00') : new Date();
 const currentYear = ref(dateObj.getFullYear());
 const currentMonth = ref(dateObj.getMonth());
 
 const formattedDate = computed(() => {
   if (!props.modelValue) return 'Select Date';
-  const date = new Date(props.modelValue);
+  const date = new Date(props.modelValue + 'T00:00:00');
   return date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
 });
 
@@ -170,14 +170,14 @@ const nextMonth = () => {
 const isSelected = (day: number) => {
   if (!props.modelValue) return false;
   const itemDate = new Date(currentYear.value, currentMonth.value, day);
-  const selDate = new Date(props.modelValue);
+  const selDate = new Date(props.modelValue + 'T00:00:00');
   return itemDate.toDateString() === selDate.toDateString();
 };
 
 const isDateDisabled = (day: number) => {
   if (!props.minDate) return false;
   const itemDate = new Date(currentYear.value, currentMonth.value, day);
-  const minD = new Date(props.minDate);
+  const minD = new Date(props.minDate + 'T00:00:00');
   // Strip time for exact day match comparison
   itemDate.setHours(0,0,0,0);
   minD.setHours(0,0,0,0);
@@ -185,6 +185,7 @@ const isDateDisabled = (day: number) => {
 };
 
 const selectDay = (day: number) => {
+  if (isDateDisabled(day)) return;
   const selectedDate = new Date(currentYear.value, currentMonth.value, day);
   // Adjust to local timezone ISO date string (YYYY-MM-DD)
   const yearStr = selectedDate.getFullYear();

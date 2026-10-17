@@ -44,9 +44,9 @@
     <div class="mb-8">
       <div class="flex justify-between items-center mb-3">
         <h3 class="text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider">
-          Max Price <span class="text-[10px] text-slate-600 dark:text-slate-400 normal-case tracking-normal">(USD)</span>
+          Max Price <span class="text-[10px] text-slate-600 dark:text-slate-400 normal-case tracking-normal">({{ displayCurrency }})</span>
         </h3>
-        <span class="text-sm font-black text-blue-700 dark:text-blue-300">${{ localFilters.maxPrice }}</span>
+        <span class="text-sm font-black text-blue-700 dark:text-blue-300">{{ formatAmount(Number(localFilters.maxPrice)) }}</span>
       </div>
       <input
         type="range"
@@ -58,8 +58,8 @@
         class="range w-full cursor-pointer"
       >
       <div class="flex justify-between text-xs text-slate-600 dark:text-slate-300 mt-2 font-bold">
-        <span>${{ HOTEL_PRICE_RANGE.min }}</span>
-        <span>${{ HOTEL_PRICE_RANGE.max }}+</span>
+        <span>{{ formatAmount(HOTEL_PRICE_RANGE.min) }}</span>
+        <span>No limit</span>
       </div>
     </div>
 
@@ -97,12 +97,17 @@
 </template>
 
 <script setup lang="ts">
+import { useCurrency } from '~/composables/useCurrency';
 import { ref, watch, computed } from 'vue';
 import { SlidersHorizontal, Star, ChevronDown } from 'lucide-vue-next';
-import type { HotelFilterOptions } from '~/types';
+import type { HotelFilterOptions } from '~~/types';
 import { HOTEL_DEFAULT_FILTERS, HOTEL_PRICE_RANGE } from '~/utils/filterDefaults';
 
+const { currencyCode, formatAmount: formatCurrency } = useCurrency();
+const displayCurrency = computed(() => props.currency || currencyCode.value);
+const formatAmount = (amount: number) => formatCurrency(amount, displayCurrency.value);
 const props = defineProps<{
+  currency?: string;
   activeFilters: HotelFilterOptions;
 }>();
 
@@ -136,7 +141,7 @@ const resetFilters = () => {
 const priceFill = computed(() => {
   const { min, max } = HOTEL_PRICE_RANGE;
   const current = Number(localFilters.value.maxPrice ?? max);
-  if (max === min) return '100%';
+  if (Number(max) === Number(min)) return '100%';
   const pct = ((current - min) / (max - min)) * 100;
   return `${Math.min(100, Math.max(0, pct))}%`;
 });

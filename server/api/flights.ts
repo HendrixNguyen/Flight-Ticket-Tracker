@@ -1,12 +1,13 @@
+import { rateLimit, clientIp } from '../utils/rateLimit';
 import type { Flight, FlightApiResponse } from '../../types';
 
 export default defineEventHandler(async (event) => {
   const query = getQuery(event);
   const config = useRuntimeConfig(event);
   
-  const from = query.from as string;
-  const to = query.to as string;
-  const date = query.date as string;
+  const from = queryText(query.from, 'from');
+  const to = queryText(query.to, 'to');
+  const date = queryText(query.date, 'date');
 
   if (!from || !to || !date) {
     return {
@@ -16,17 +17,21 @@ export default defineEventHandler(async (event) => {
     } as FlightApiResponse;
   }
 
+  const returnDate = queryText(query.returnDate, 'returnDate');
+  const passengers = queryCount(query.passengers, 'passengers', 1, 9);
+  if (!validDate(date) || (returnDate && (!validDate(returnDate) || returnDate < date)) || from === to) throw createError({ statusCode: 400, statusMessage: 'Invalid flight route or dates' });
+
   const limit = RATE_LIMIT.flights;
   const gate = rateLimit('flights', clientIp(event), limit.limit, limit.windowMs);
   if (!gate.allowed) {
-    setHeader(event, 'Retry-After', String(gate.retryAfterSeconds));
+    setHeader(event, 'Retry-After', gate.retryAfterSeconds);
     throw createError({
       statusCode: 429,
       statusMessage: 'Too many flight searches. Please wait a moment before searching again.',
     });
   }
 
-  const returnDate = query.returnDate as string;
+
   // SerpApi performs the conversion, so prices are real quoted fares rather
   // than amounts this app converted with its own rate table.
   const currency = resolveCurrency(query.currency);
@@ -34,7 +39,7 @@ export default defineEventHandler(async (event) => {
   // Keyed on the full search so a cached round-trip never leaks into a
   // one-way search or a different date. Currency is part of the key because
   // the same route returns different amounts per currency.
-  const key = cacheKey('flights', { from, to, date, returnDate, currency });
+  const key = cacheKey('flights', { from, to, date, returnDate, passengers, currency });
 
   // ?refresh=1 forces a live lookup for users who suspect stale prices.
   if (query.refresh !== '1') {
@@ -67,6 +72,7 @@ export default defineEventHandler(async (event) => {
     } else {
       serpApiUrl.searchParams.append('type', '2'); // One-way flight
     }
+    serpApiUrl.searchParams.append('adults', String(passengers));
     serpApiUrl.searchParams.append('currency', currency);
     serpApiUrl.searchParams.append('hl', 'en');
     serpApiUrl.searchParams.append('api_key', config.serpApiKey);
@@ -86,7 +92,7 @@ export default defineEventHandler(async (event) => {
       ...(response.other_flights || [])
     ];
 
-    const mappedFlights: Flight[] = allFlights.map((item: any) => {
+    const mappedFlights: Flight[] = allFlights.filter((item: any) => Array.isArray(item.flights) && item.flights.length > 0 && typeof item.price === 'number' && item.price > 0).map((item: any) => {
        const flightLegs = item.flights;
        const firstLeg = flightLegs[0];
        const lastLeg = flightLegs[flightLegs.length - 1];
@@ -123,11 +129,11 @@ export default defineEventHandler(async (event) => {
     cacheSet(key, result, CACHE_TTL.flights);
     return result;
   } catch (error: any) {
-    console.error('Error fetching from SerpApi:', error);
+    console.error('Flight provider request failed:', error.statusCode || 'connection error');
     return {
       success: false,
       data: [],
-      error: error.message || 'Failed to fetch flight data from SerpApi',
+      error: 'Unable to retrieve flight prices. Please try again later.',
     } as FlightApiResponse;
   }
 });

@@ -7,14 +7,14 @@
     </div>
     <div v-else>
       <!-- Map container -->
-      <div class="map-wrapper aspect-w-16 aspect-h-9 bg-gray-200 dark:bg-gray-700 rounded-lg relative overflow-hidden">
+      <div class="map-wrapper aspect-video min-h-80 bg-gray-200 dark:bg-gray-700 rounded-lg relative overflow-hidden">
         <!-- Simple map visualization using CSS positioning -->
         <!-- In a real app, we would use Leaflet, Mapbox, or Google Maps -->
-        <div class="absolute inset-0" v-for="(hotel, index) in hotelsWithCoordinates" :key="hotel.id">
+        <div class="absolute inset-0 pointer-events-none" v-for="(hotel, index) in hotelsWithCoordinates" :key="hotel.id">
           <!-- Convert lat/lng to approximate x/y positions -->
           <!-- This is a very rough approximation for demonstration -->
           <div 
-            class="absolute w-4 h-4 bg-red-500 rounded-full border-2 border-white shadow-md transform -translate-x-2 -translate-y-2"
+            class="absolute pointer-events-auto w-4 h-4 bg-red-500 rounded-full border-2 border-white shadow-md transform -translate-x-2 -translate-y-2"
             :style="{
               left: `${((hotel.gps?.longitude || 0) + 180) * (100/360)}%`,
               bottom: `${((hotel.gps?.latitude || 0) + 90) * (100/180)}%`
@@ -70,7 +70,7 @@
                 <span v-if="hotel.rating" class="text-xs bg-amber-100 dark:bg-amber-900 px-1.5 py-0.5 rounded">
                   {{ hotel.rating.toFixed(1)}} ★
                 </span>
-                <span class="text-xs text-slate-600 dark:text-slate-300">{{ formatAmount(hotel.pricePerNight) }}/night</span>
+                <span class="text-xs text-slate-600 dark:text-slate-300">{{ formatAmount(hotel.pricePerNight, hotel.currency) }}/night</span>
               </div>
             </div>
           </div>
@@ -91,7 +91,7 @@
 <script setup lang="ts">
 import { defineProps, ref, computed } from 'vue';
 import { useCurrency } from '~/composables/useCurrency';
-import type { Hotel } from '~/types';
+import type { Hotel } from '~~/types';
 
 const props = defineProps({
   hotels: {

@@ -132,6 +132,7 @@ const handleKeydown = (event: KeyboardEvent) => {
 
   const first = focusables[0];
   const last = focusables[focusables.length - 1];
+  if (!first || !last) return;
 
   if (event.shiftKey && document.activeElement === first) {
     event.preventDefault();

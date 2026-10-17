@@ -123,7 +123,7 @@ import { Calendar } from 'lucide-vue-next';
 
 const props = defineProps<{
   startDate: string;
-  endDate: string;
+  endDate?: string;
   minDate?: string;
 }>();
 
@@ -143,18 +143,18 @@ const monthNames = [
 ];
 
 // Focus tracking
-const dateObj = props.startDate ? new Date(props.startDate) : new Date();
+const dateObj = props.startDate ? new Date(props.startDate + 'T00:00:00') : new Date();
 const currentYear = ref(dateObj.getFullYear());
 const currentMonth = ref(dateObj.getMonth());
 
 const formattedStart = computed(() => {
   if (!props.startDate) return 'Select Date';
-  return new Date(props.startDate).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+  return new Date(props.startDate + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
 });
 
 const formattedEnd = computed(() => {
   if (!props.endDate) return 'Select Return';
-  return new Date(props.endDate).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+  return new Date(props.endDate + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
 });
 
 const daysInMonth = computed(() => {
@@ -198,7 +198,7 @@ const openCalendar = (field: 'start' | 'end') => {
   // Jump calendar window to appropriate month
   const targetDate = field === 'start' ? props.startDate : props.endDate;
   if (targetDate) {
-    const d = new Date(targetDate);
+    const d = new Date(targetDate + 'T00:00:00');
     currentYear.value = d.getFullYear();
     currentMonth.value = d.getMonth();
   }
@@ -206,16 +206,16 @@ const openCalendar = (field: 'start' | 'end') => {
 
 const isExtreme = (day: number) => {
   const itemDate = new Date(currentYear.value, currentMonth.value, day).toDateString();
-  const sDate = props.startDate ? new Date(props.startDate).toDateString() : '';
-  const eDate = props.endDate ? new Date(props.endDate).toDateString() : '';
+  const sDate = props.startDate ? new Date(props.startDate + 'T00:00:00').toDateString() : '';
+  const eDate = props.endDate ? new Date(props.endDate + 'T00:00:00').toDateString() : '';
   return itemDate === sDate || itemDate === eDate;
 };
 
 const isBetween = (day: number) => {
   if (!props.startDate || !props.endDate) return false;
   const itemTime = new Date(currentYear.value, currentMonth.value, day).getTime();
-  const sTime = new Date(props.startDate).getTime();
-  const eTime = new Date(props.endDate).getTime();
+  const sTime = new Date(props.startDate + 'T00:00:00').getTime();
+  const eTime = new Date(props.endDate + 'T00:00:00').getTime();
   return itemTime > sTime && itemTime < eTime;
 };
 
@@ -225,14 +225,14 @@ const isDateDisabled = (day: number) => {
 
   // Disable dates prior to current day
   if (props.minDate) {
-    const minD = new Date(props.minDate);
+    const minD = new Date(props.minDate + 'T00:00:00');
     minD.setHours(0,0,0,0);
     if (itemDate.getTime() < minD.getTime()) return true;
   }
 
   // When selecting return, disable dates prior to start date
   if (activeFocus.value === 'end' && props.startDate) {
-    const sD = new Date(props.startDate);
+    const sD = new Date(props.startDate + 'T00:00:00');
     sD.setHours(0,0,0,0);
     if (itemDate.getTime() < sD.getTime()) return true;
   }
@@ -241,6 +241,7 @@ const isDateDisabled = (day: number) => {
 };
 
 const selectDay = (day: number) => {
+  if (isDateDisabled(day)) return;
   const selectedDate = new Date(currentYear.value, currentMonth.value, day);
   const yearStr = selectedDate.getFullYear();
   const monthStr = String(selectedDate.getMonth() + 1).padStart(2, '0');
@@ -254,7 +255,7 @@ const selectDay = (day: number) => {
     activeFocus.value = 'end';
     
     // If current end date is before new start date, reset it
-    if (props.endDate && new Date(props.endDate).getTime() < selectedDate.getTime()) {
+    if (props.endDate && new Date(props.endDate + 'T00:00:00').getTime() < selectedDate.getTime()) {
       emit('update:endDate', '');
     }
   } else {

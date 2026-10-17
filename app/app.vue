@@ -85,6 +85,7 @@
                    Alerts
                  </NuxtLink>
                </li>
+               <li><NuxtLink to="/trips" class="pill rounded-full px-3.5 py-1.5">Trips</NuxtLink></li>
              </ul>
           </nav>
           <div class="flex items-center gap-2 sm:gap-3">
@@ -116,7 +117,7 @@
 
 <script setup lang="ts">
 import { useRoute } from '#imports';
-import { Plane, Building } from 'lucide-vue-next';
+import { Plane } from 'lucide-vue-next';
 
 const route = useRoute();
 

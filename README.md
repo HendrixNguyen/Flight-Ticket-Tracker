@@ -54,9 +54,8 @@ exchange-rate table. Changing currency re-runs the current search.
 
 Supported: USD, EUR, GBP, JPY, VND, AUD, CAD, SGD, THB, KRW, INR, CHF.
 
-The **price filter sliders stay in USD** regardless of display currency, and are labelled `(USD)` to
-avoid implying otherwise. Converting the slider bounds would require a rate table and would make the
-filter meaningless.
+Price filter sliders use the selected currency. The maximum slider position means no price limit.
+Bundled sample hotel prices retain their USD currency and are labelled as samples.
 
 ## Environment variables
 
@@ -162,3 +161,23 @@ has no mock fallback, so a key that failed to load shows up immediately as an er
   localhost, which Traefik cannot reach.
 - Only `.output` is copied into the final image - no source, dev dependencies or build toolchain.
 - Every SerpApi call is billed. Put rate limiting in front of `/api/*` if the domain is public.
+
+## Validation
+
+```bash
+bun run typecheck
+bun run build
+bunx playwright install chromium
+bun run test
+```
+
+Browser tests start the production server on port 3100 with SerpApi disabled and use
+fixtures for flight results. They do not consume API quota. To use an existing
+Chromium installation, set `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH`.
+
+Trips are stored in the current browser's local storage. Alerts are isolated by an
+HTTP-only anonymous session cookie and stored in server memory; they reset on
+redeploy and are not shared across replicas. Alert checks run while the Alerts
+page is open. Price history and flexible-date calendars are illustrative sample
+data, not historical observations or live date-specific quotes. The map remains
+a simplified coordinate visualization. Hotel details do not create a reservation.

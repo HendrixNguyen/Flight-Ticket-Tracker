@@ -1,3 +1,4 @@
+import { rateLimit, clientIp } from '../utils/rateLimit';
 import type { LocationSuggestion } from '../../types';
 
 // Fallback suggestions in case SerpApi is not configured or offline
@@ -21,7 +22,7 @@ export default defineEventHandler(async (event) => {
   const query = getQuery(event);
   const config = useRuntimeConfig(event);
   
-  const q = (query.q as string || '').trim();
+  const q = queryText(query.q, 'q');
 
   if (!q) {
     return {
@@ -33,7 +34,7 @@ export default defineEventHandler(async (event) => {
   const limit = RATE_LIMIT.locations;
   const gate = rateLimit('locations', clientIp(event), limit.limit, limit.windowMs);
   if (!gate.allowed) {
-    setHeader(event, 'Retry-After', String(gate.retryAfterSeconds));
+    setHeader(event, 'Retry-After', gate.retryAfterSeconds);
     throw createError({
       statusCode: 429,
       statusMessage: 'Too many location searches. Please slow down.',
@@ -123,7 +124,7 @@ export default defineEventHandler(async (event) => {
     cacheSet(key, result, CACHE_TTL.locations);
     return result;
   } catch (error: any) {
-    console.error('Error fetching autocomplete suggestions from SerpApi:', error);
+    console.error('Autocomplete provider request failed:', error.statusCode || 'connection error');
 
     // Fall back to mock suggestions if SerpApi call fails
     const filtered = MOCK_SUGGESTIONS.filter(item => 
@@ -135,7 +136,7 @@ export default defineEventHandler(async (event) => {
     return {
       success: true,
       data: filtered,
-      error: error.message || 'SerpApi lookup failed. Falling back to local data.',
+      error: 'Location provider unavailable. Showing bundled suggestions.',
       mock: true
     };
   }

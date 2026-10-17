@@ -49,7 +49,7 @@ function generateMockPriceCalendar(basePrice: number, totalDays: number = 30): {
       // Ensure price stays within reasonable bounds
       price = Math.max(basePrice * 0.5, Math.min(basePrice * 2.0, price));
 
-      const dateStr = date.toISOString().split('T')[0];
+      const dateStr = date.toISOString().slice(0, 10);
 
       weekDays.push({
         date: dateStr,
@@ -95,9 +95,9 @@ export default defineEventHandler((event) => {
 
   // Use destination or route to seed the random data generation consistently
   const seed =
-    (query.destination || query.from || query.to || 'unknown') +
-    (query.adults || '') +
-    (query.rooms || '');
+    String(query.destination || query.from || query.to || 'unknown') +
+    String(query.adults || '') +
+    String(query.rooms || '');
 
   // Simple hash function for consistent seeding
   let hash = 0;
