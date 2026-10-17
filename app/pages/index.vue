@@ -355,7 +355,7 @@ const activeChips = computed(() => {
   const f = flightFilters.value;
 
   if (f.maxPrice !== undefined && f.maxPrice < FLIGHT_PRICE_RANGE.max) {
-    chips.push({ key: 'maxPrice', label: `Under $${f.maxPrice} (USD)` });
+    chips.push({ key: 'maxPrice', label: `Under ${f.maxPrice} (USD)` });
   }
   if (f.maxStops !== undefined && f.maxStops !== FLIGHT_DEFAULT_FILTERS.maxStops) {
     const labels: Record<number, string> = { 0: 'Direct only', 1: 'Max 1 stop' };
