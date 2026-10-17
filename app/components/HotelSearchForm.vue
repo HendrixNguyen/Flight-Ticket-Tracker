@@ -1,19 +1,24 @@
 <template>
   <div class="flex flex-col gap-4 w-full relative">
-    
+    <div class="flex flex-wrap items-center gap-x-6 gap-y-3">
+      <label class="flex min-h-11 items-center gap-2 text-sm font-medium text-slate-600 dark:text-slate-300 cursor-pointer">
+        <input
+          v-model="flexibleDates"
+          type="checkbox"
+          class="form-checkbox h-4 w-4 text-blue-600"
+          aria-describedby="hotel-flexible-dates-hint"
+        >
+        <span>Flexible Dates</span>
+        <span
+          id="hotel-flexible-dates-hint"
+          class="text-xs text-slate-500 dark:text-slate-400"
+          :class="{ invisible: !flexibleDates }"
+        >(±3 days)</span>
+      </label>
+    </div>
+
     <!-- Main Search Form -->
-    <form @submit.prevent="submitSearch" class="flex flex-col lg:flex-row gap-4 w-full items-end relative z-30">
-      <!-- Flexible Date Toggle -->
-      <div class="flex items-center gap-2 mb-2 lg:mb-0">
-        <label class="text-sm font-medium text-slate-600 dark:text-slate-300 flex items-center gap-1">
-          <input type="checkbox" v-model="flexibleDates" class="form-checkbox h-4 w-4 text-blue-600">
-          <span>Flexible Dates</span>
-        </label>
-        <span v-if="flexibleDates" class="text-xs text-slate-500 dark:text-slate-400">
-          (±3 days)
-        </span>
-      </div>
-      
+    <form @submit.prevent="submitSearch" class="hotel-search-fields grid grid-cols-1 md:grid-cols-2 gap-4 w-full items-end relative z-30">
       <!-- Destination Input with Real-time Image Suggestion -->
       <LocationCombobox
         v-model="form.destination"
@@ -21,7 +26,7 @@
         placeholder="Search hotels, resorts, or cities (e.g. San Francisco)"
         endpoint="/api/hotels-autocomplete"
         :popular-locations="POPULAR_DESTINATIONS"
-        class="flex-[1.2]"
+        class="min-w-0"
         @update:model-value="onDestinationChanged"
         @select="onDestinationSelected"
       >
@@ -40,7 +45,7 @@
       </LocationCombobox>
 
       <!-- Stay Dates (Check-in & Check-out Calendar Range Picker) -->
-      <div class="flex-[1.5] w-full relative">
+      <div class="hotel-date-fields min-w-0 md:col-span-2 xl:col-span-1 w-full relative">
         <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Stay Dates</label>
         <CustomDateRangePicker 
           v-model:startDate="form.checkIn"
@@ -51,7 +56,7 @@
       </div>
 
       <!-- Guests and Rooms Selector Panel -->
-      <div ref="guestSelectorContainer" class="flex-1 w-full relative">
+      <div ref="guestSelectorContainer" class="min-w-0 w-full relative">
         <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Guests & Rooms</label>
         <div 
           @click="toggleGuestDropdown"
@@ -153,7 +158,7 @@
       <!-- Search Button -->
       <button 
         type="submit" 
-        class="w-full lg:w-auto bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-8 rounded-xl transition-colors shadow-md hover:shadow-lg flex items-center justify-center gap-2 mb-[1px] cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-slate-900"
+        class="md:col-span-2 xl:col-span-1 w-full h-[50px] bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-8 rounded-xl transition-colors shadow-md hover:shadow-lg flex items-center justify-center gap-2 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-slate-900"
       >
         <Search class="w-5 h-5" />
         <span>Search Stays</span>
@@ -354,6 +359,22 @@ const submitSearch = () => {
 </script>
 
 <style scoped>
+.hotel-date-fields :deep(button) {
+  min-width: 0;
+}
+
+.hotel-date-fields :deep(button > span) {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (min-width: 1280px) {
+  .hotel-search-fields {
+    grid-template-columns: minmax(0, 1.2fr) minmax(0, 1.5fr) minmax(0, 1fr) auto;
+  }
+}
+
 /* The panel's `absolute` is a plain utility and now wins, since the glass
    primitives sit in `@layer components` rather than outside every layer. */
 

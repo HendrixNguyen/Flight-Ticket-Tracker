@@ -1,6 +1,6 @@
 <template>
-  <div>
-      <h2 class="text-2xl font-black mb-6">My Trips</h2>
+  <section class="w-full min-w-0" aria-labelledby="trips-heading">
+      <h2 id="trips-heading" class="text-2xl font-black mb-6">My Trips</h2>
 
       <div v-if="loading" class="flex flex-col justify-center items-center py-20">
         <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
@@ -86,7 +86,7 @@
           </div>
         </div>
       </div>
-  </div>
+  </section>
 </template>
 
 <script setup lang="ts">

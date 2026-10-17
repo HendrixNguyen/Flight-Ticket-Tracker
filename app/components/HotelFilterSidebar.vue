@@ -1,5 +1,5 @@
 <template>
-  <div class="glass-card glass-grain filter-pane p-6 rounded-3xl">
+  <div class="glass-card glass-grain filter-pane p-4 rounded-3xl">
     <div class="flex items-center justify-between mb-6">
       <h2 class="text-lg font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
         <SlidersHorizontal class="w-5 h-5 text-blue-600 dark:text-blue-400" aria-hidden="true" />
@@ -109,6 +109,7 @@ const formatAmount = (amount: number) => formatCurrency(amount, displayCurrency.
 const props = defineProps<{
   currency?: string;
   activeFilters: HotelFilterOptions;
+  activeSort?: string;
 }>();
 
 const emit = defineEmits<{
@@ -117,7 +118,10 @@ const emit = defineEmits<{
 }>();
 
 const localFilters = ref<HotelFilterOptions>({ ...props.activeFilters });
-const localSort = ref<string>('price_asc');
+const localSort = ref<string>(props.activeSort ?? 'price_asc');
+watch(() => props.activeSort, (sort) => {
+  if (sort) localSort.value = sort;
+});
 
 const emitFilters = () => {
   emit('update:filters', { ...localFilters.value });
@@ -152,22 +156,14 @@ watch(() => props.activeFilters, (newVal) => {
 </script>
 
 <style scoped>
-/* The pane's own lift. `.glass*` sets both `transition` and `box-shadow`, and
-   a `transition-transform` / `hover:shadow-*` utility would replace one while
-   leaving the other untouched rather than composing into this stack. Restating
-   the transition here keeps the hover animation and the material cross-fade in
-   a single declaration. */
+/* Keep the filter surface stationary during interaction. */
 .filter-pane {
   transition:
-    transform 0.35s cubic-bezier(0.22, 1, 0.36, 1),
     background-color 0.3s ease,
     border-color 0.3s ease,
     box-shadow 0.35s ease;
 }
 
-.filter-pane:hover {
-  transform: translateY(-2px);
-}
 
 /* Hover fills for glass controls live here for the same cascade reason. */
 .glass-hover:hover {
@@ -199,6 +195,8 @@ watch(() => props.activeFilters, (newVal) => {
   gap: 0.75rem;
   padding: 0.375rem 0.5rem;
   margin-inline: -0.5rem;
+  border: 1px solid transparent;
+  min-height: 2.5rem;
   border-radius: 0.75rem;
   cursor: pointer;
   transition: background-color 0.2s ease;
@@ -206,6 +204,14 @@ watch(() => props.activeFilters, (newVal) => {
 
 .choice:hover {
   background-color: light-dark(rgba(255, 255, 255, 0.6), rgba(255, 255, 255, 0.08));
+}
+
+.choice:has(input:checked) {
+  border-color: var(--color-blue-500);
+}
+
+.filter-pane svg {
+  flex-shrink: 0;
 }
 
 .choice-box {
@@ -291,12 +297,12 @@ watch(() => props.activeFilters, (newVal) => {
 
 .range:hover::-webkit-slider-thumb,
 .range:active::-webkit-slider-thumb {
-  transform: scale(1.12);
+  transform: none;
 }
 
 .range:hover::-moz-range-thumb,
 .range:active::-moz-range-thumb {
-  transform: scale(1.12);
+  transform: none;
 }
 
 .range:focus-visible {

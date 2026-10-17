@@ -41,9 +41,26 @@
 </div>
 
      <!-- Active Search Grid -->
-     <div v-if="viewType === 'list'" class="flex flex-col lg:flex-row gap-8 relative z-10">
-       <!-- Set Price Alert Button -->
-       <div class="w-full mb-4 lg:mb-0">
+     <div v-if="viewType === 'list'" class="hotel-results-layout grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,3fr)] items-start gap-6 lg:gap-8 relative z-10 pb-20 lg:pb-0">
+       <!-- Sidebar Filters -->
+       <div class="w-full min-w-0 flex flex-col gap-4 lg:sticky lg:top-24" aria-label="Hotel filters and price alert">
+         <ActiveFilterChips :chips="activeChips" @remove="removeFilter" />
+         <FilterSheet
+           hotel-layout
+           class="w-full min-w-0"
+           title="Filter stays"
+           :count="activeChips.length"
+           :result-count="filteredAndSortedHotels.length"
+         >
+           <HotelFilterSidebar
+             :active-filters="hotelFilters"
+             :active-sort="hotelSortBy"
+             @update:filters="updateHotelFilters"
+             @update:sort="updateHotelSort"
+           />
+         </FilterSheet>
+         <!-- Set Price Alert Button -->
+         <div class="w-full">
          <button
            @click="openAlertModal"
            class="w-full px-4 py-2 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
@@ -51,27 +68,11 @@
          >
            Set Price Alert
          </button>
+         </div>
        </div>
 
-       <!-- Sidebar Filters -->
-       <aside class="w-full lg:w-1/4">
-         <ActiveFilterChips :chips="activeChips" @remove="removeFilter" />
-         <FilterSheet
-           title="Filter stays"
-           :count="activeChips.length"
-           :result-count="filteredAndSortedHotels.length"
-         >
-           <HotelFilterSidebar
-             :currency="isMock ? 'USD' : currencyCode"
-             :active-filters="hotelFilters"
-             @update:filters="updateHotelFilters"
-             @update:sort="updateHotelSort"
-           />
-         </FilterSheet>
-       </aside>
-
        <!-- Listings Content Section -->
-       <section class="w-full lg:w-3/4">
+       <section class="w-full min-w-0 min-h-[600px]" aria-label="Hotel results">
          <div v-if="isSearching" class="flex flex-col justify-center items-center py-20 gap-4">
            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
            <p class="text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-widest animate-pulse">Crawling real-time hotel rates...</p>
@@ -99,7 +100,6 @@
               :historyData="hotelHistoryData"
               :loading="historyLoading"
               :error="historyError"
-
             />
           </div>
 
@@ -116,7 +116,7 @@
         </div>
        </section>
      </div>
-       <div v-else>
+       <div v-else class="min-w-0 min-h-[600px]">
          <!-- Price Calendar (for flexible date searches) -->
          <div v-if="hasCalendarData" class="mb-6">
            <PriceCalendar
@@ -132,7 +132,6 @@
              :historyData="hotelHistoryData"
              :loading="historyLoading"
              :error="historyError"
-
            />
          </div>
 
