@@ -6,7 +6,7 @@
       @click="isOpen ? close() : open()"
       :aria-expanded="isOpen"
       aria-haspopup="listbox"
-      :aria-label="`Currency: ${currency.name}. Change currency`"
+      :aria-label="`Currency: ${currency.value.name}. Change currency`"
       class="trigger glass glass-hover glass-grain flex items-center gap-1.5 px-3 h-11 rounded-full text-slate-800 dark:text-slate-100 outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 dark:focus-visible:outline-blue-300 transition-all duration-300 cursor-pointer"
     >
       <span class="text-sm font-bold">{{ currency.symbol }}</span>
